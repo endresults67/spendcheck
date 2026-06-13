@@ -1596,13 +1596,12 @@ window.copyShareText=function(){
   }).catch(()=>{});
 };
 
-window.generateShareFile=function(){
+window.generateShareFile=async function(){
   if(!window._allTxns||!window._allMonths){
     alert('Please upload a CSV first so there is data to share.');
     return;
   }
 
-  // The month whose transaction-level detail we expose
   const shareMonth=CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1];
 
   // Full transactions for the shared month ONLY (enables drill-downs for that month)
@@ -1613,12 +1612,12 @@ window.generateShareFile=function(){
     cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
   }));
 
-  // Summary totals for ALL months (for Trends + History charts).
-  // Strip otDetail payee names from non-shared months to avoid leaking detail.
+  // Summary totals for ALL months (for Trends + History). Strip otDetail names from
+  // non-shared months so no transaction-level detail leaks.
   const historyForShare={};
   for(const m of Object.keys(HISTORY)){
     const h=JSON.parse(JSON.stringify(HISTORY[m]));
-    if(m!==shareMonth) h.otDetail=[];  // keep only totals for other months
+    if(m!==shareMonth) h.otDetail=[];
     historyForShare[m]=h;
   }
 
@@ -1632,21 +1631,38 @@ window.generateShareFile=function(){
     generated:new Date().toISOString()
   };
 
-  // Clone the entire current document — this IS the full app
-  const docClone=document.documentElement.cloneNode(true);
-  const bootScript=document.createElement('script');
-  bootScript.id='__shared_data__';
-  bootScript.textContent='window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
-  const cloneBody=docClone.querySelector('body');
-  cloneBody.insertBefore(bootScript,cloneBody.firstChild);
+  // Get a PRISTINE copy of the app's own source (not the mutated live DOM).
+  // Fetching our own URL returns the original file exactly as served.
+  let baseHTML;
+  try{
+    const resp=await fetch(window.location.href);
+    baseHTML=await resp.text();
+  }catch(e){
+    // Fallback: serialize current document (works, but live-DOM based)
+    baseHTML='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  }
 
-  const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
+  // Inject the payload as a script right after <body> so it is defined
+  // before the main app script runs.
+  const payloadTag='<script id="__shared_data__">window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';<\/script>';
+  let shareHTML;
+  if(baseHTML.indexOf('<body>')!==-1){
+    shareHTML=baseHTML.replace('<body>','<body>\n'+payloadTag);
+  }else if(baseHTML.match(/<body[^>]*>/)){
+    shareHTML=baseHTML.replace(/(<body[^>]*>)/,'$1\n'+payloadTag);
+  }else{
+    shareHTML=payloadTag+baseHTML;
+  }
+
   const blob=new Blob([shareHTML],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`spendcheck-${shareMonth}.html`;
-  a.click();URL.revokeObjectURL(url);
+  a.download='spendcheck-'+shareMonth+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 
 // ═══════════════════ TAB SWITCHING ═══════════════════
@@ -1708,7 +1724,7 @@ function bootFromSharedPayload(){
   return true;
 }
 
-if(!bootFromSharedPayload()){
+if(!safeBootShared()){
   // Normal startup: if history exists, show quick-load on upload screen
   const histMonths=Object.keys(HISTORY).sort().reverse();
   if(histMonths.length>0){
@@ -1718,6 +1734,19 @@ if(!bootFromSharedPayload()){
         document.getElementById('app').style.display='flex';
         document.getElementById('main-tabs').style.display='flex';
         renderMonthStrip();">${HISTORY[m].label}</button>`).join('')}`;
+  }
+}
+
+function safeBootShared(){
+  if(!window.__SHARED_PAYLOAD__)return false;
+  try{
+    return bootFromSharedPayload();
+  }catch(e){
+    // If boot fails, at least show the app shell with an error rather than a blank screen
+    try{
+      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center"><h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Couldn\'t open this snapshot</h2><p style="color:var(--tx2);font-size:0.85rem">There was a problem loading the shared data. Please ask for a fresh copy.</p></div>';
+    }catch(_){}
+    return true; // we handled it; don't fall through to normal startup
   }
 }
 </script>
