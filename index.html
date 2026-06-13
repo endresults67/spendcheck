@@ -1544,10 +1544,12 @@ function renderShare(){
   else summary+=`We drew ${$f(Math.abs(netIncome))} from savings to cover the gap.`;
 
   $('share-page').innerHTML=`
-    <div class="card"><div class="card-title">Share Summary — ${d.label}</div>
+    <div class="card"><div class="card-title">Share Full App — ${d.label}</div>
       <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:14px">
-        This generates a self-contained HTML file you can text or email to Kathy.
-        She opens it on her phone and sees the full scorecard — no app needed.
+        This generates a complete copy of SpendCheck with all your data built in.
+        Kathy opens it on her phone and gets the full app — every tab, charts,
+        drill-downs, and notes — with nothing to install and no upload needed.
+        It opens on whichever month you have selected now (${d.label}).
       </p>
       <button class="share-btn" onclick="generateShareFile()">Generate & Download Share File</button>
     </div>
@@ -1568,71 +1570,49 @@ window.copyShareText=function(){
 };
 
 window.generateShareFile=function(){
-  const d=CURRENT;const target=SETTINGS.target;
-  const gap=d.totalReg-target;const netIncome=d.totalIncome-d.totalAll;const ytdOT=getYTDOneTime();
-  const gapCls=gap>500?'over':gap<-200?'under':'close';
+  if(!window._allTxns||!window._allMonths){
+    alert('Please upload a CSV first so there is data to share.');
+    return;
+  }
 
-  // Build a standalone HTML file
-  let shareHTML=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SpendCheck — ${d.label}</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#f5f6fa;color:#1e2a3a;padding:20px;max-width:500px;margin:0 auto;-webkit-font-smoothing:antialiased}
-h1{font-family:'Source Serif 4',serif;font-size:1.3rem;text-align:center;margin-bottom:4px}
-h1 span{color:#3b6fc2;font-style:italic;font-weight:400}
-.sub{text-align:center;font-size:0.72rem;color:#8492a6;margin-bottom:20px}
-.hero{text-align:center;background:white;border:1px solid #e2e6f0;border-radius:16px;padding:24px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(30,42,58,.06)}
-.mo{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:#8492a6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-.big{font-size:2.4rem;font-weight:700;line-height:1;margin-bottom:4px}
-.lbl{font-size:0.78rem;color:#4a5568;margin-bottom:10px}
-.gap{display:inline-block;padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600;font-family:'JetBrains Mono',monospace}
-.over{background:#fdeaea;color:#d03e3e}.under{background:#e6f5ee;color:#1a8a5a}.close{background:#fef7e6;color:#c68a17}
-.card{background:white;border:1px solid #e2e6f0;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(30,42,58,.04)}
-.ct{font-family:'Source Serif 4',serif;font-size:0.92rem;font-weight:600;margin-bottom:10px}
-.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e2e6f0;font-size:0.82rem}
-.row:last-child{border-bottom:none}
-.row .v{font-family:'JetBrains Mono',monospace}
-.grn{color:#1a8a5a}.red{color:#d03e3e}.gold{color:#c68a17}
-.note{font-size:0.72rem;color:#8492a6;text-align:center;margin-top:20px;font-style:italic}
-</style></head><body>
-<h1>Spend<span>Check</span></h1>
-<div class="sub">Monthly Expense Snapshot</div>
-<div class="hero">
-  <div class="mo">${d.label}</div>
-  <div class="big" style="color:${gapCls==='over'?'#d03e3e':gapCls==='under'?'#1a8a5a':'#c68a17'}">${$f(d.totalReg)}</div>
-  <div class="lbl">regular spending</div>
-  <div class="gap ${gapCls}">${gap>=0?'▲':'▼'} ${$f(Math.abs(gap))} ${gap>=0?'over':'under'} ${$f(target)} target</div>
-</div>
-<div class="card">
-  <div class="ct">Summary</div>
-  <div class="row"><span>Income</span><span class="v grn">${$f(d.totalIncome)}</span></div>
-  <div class="row"><span>Regular Spending</span><span class="v">${$f(d.totalReg)}</span></div>
-  <div class="row"><span>One-Time Items</span><span class="v gold">${$f(d.totalOT)}</span></div>
-  <div class="row"><span>Total Spending</span><span class="v">${$f(d.totalAll)}</span></div>
-  <div class="row"><span>Net</span><span class="v ${netIncome>=0?'grn':'red'}">${$fs(netIncome)}</span></div>
-</div>
-<div class="card">
-  <div class="ct">By Type</div>
-  ${['Fixed','Fixed Variable','Lifestyle'].map(g=>`<div class="row"><span>${g}</span><span class="v">${$f(d.groupTotals[g]||0)}</span></div>`).join('')}
-</div>
-${Object.keys(d.buckets).length>0?`<div class="card"><div class="ct">By Bucket</div>
-  ${Object.entries(d.buckets).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div class="row"><span>${n}</span><span class="v">${$f(v)}</span></div>`).join('')}
-</div>`:''}
-${d.otDetail.length>0?`<div class="card"><div class="ct">One-Time Detail</div>
-  ${d.otDetail.map(o=>`<div class="row"><span>${o.payee}</span><span class="v">${$f(o.amount)}</span></div>`).join('')}
-  <div style="margin-top:8px;padding:6px 10px;background:#fef7e6;border-radius:6px;font-size:0.75rem;color:#c68a17">
-    Irregular reserve YTD: ${$f(ytdOT)} of ${$f(SETTINGS.reserve)} (${Math.round(ytdOT/SETTINGS.reserve*100)}%)</div>
-</div>`:''}
-<div class="note">Generated by SpendCheck · ${new Date().toLocaleDateString()}</div>
-</body></html>`;
+  // Serialize the full transaction dataset (dates → ISO strings for JSON safety)
+  const txnsForShare=window._allTxns.map(t=>({
+    date:t.date instanceof Date?t.date.toISOString():t.date,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags,
+    cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
+  }));
+  const payload={
+    txns:txnsForShare,
+    months:window._allMonths,
+    settings:SETTINGS,
+    currentMonth:CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1],
+    generated:new Date().toISOString()
+  };
 
-  // Download
+  // Clone the entire current document — this IS the full app
+  const docClone=document.documentElement.cloneNode(true);
+
+  // Remove the live file-input value and any transient state from the clone (harmless, but tidy)
+  // Inject the embedded data + bootstrap script right before </body>
+  const bootScript=document.createElement('script');
+  bootScript.id='__shared_data__';
+  bootScript.textContent=
+    'window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
+
+  // Find the body in the clone and append the boot data as the FIRST script so it runs setup
+  const cloneBody=docClone.querySelector('body');
+  // Place the payload script at the very start of body so it exists before the main script runs
+  cloneBody.insertBefore(bootScript,cloneBody.firstChild);
+
+  // Serialize
+  const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
+
   const blob=new Blob([shareHTML],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=`spendcheck-${d.month}.html`;
+  a.href=url;
+  const mlabel=(CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1]);
+  a.download=`spendcheck-${mlabel}.html`;
   a.click();URL.revokeObjectURL(url);
 };
 
@@ -1663,15 +1643,44 @@ document.addEventListener('drop',e=>e.preventDefault());
 loadSettings();
 loadHistory();
 
-// If history exists, show quick-load on upload screen
-const histMonths=Object.keys(HISTORY).sort().reverse();
-if(histMonths.length>0){
-  $('hist-quick').innerHTML=`<div style="font-size:0.82rem;color:var(--tx2);margin-bottom:10px">Or load a saved month:</div>
-    ${histMonths.slice(0,3).map(m=>`<button class="hdr-btn" style="margin:4px" onclick="loadHistoryMonth('${m}');
-      document.getElementById('upload-screen').style.display='none';
-      document.getElementById('app').style.display='flex';
-      document.getElementById('main-tabs').style.display='flex';
-      renderMonthStrip();">${HISTORY[m].label}</button>`).join('')}`;
+// ── If this is a SHARED file with embedded data, load it automatically ──
+function bootFromSharedPayload(){
+  const p=window.__SHARED_PAYLOAD__;
+  if(!p)return false;
+  // Rehydrate transactions (ISO date strings → Date objects)
+  const txns=p.txns.map(t=>({
+    date:t.date?new Date(t.date):null,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags||[],
+    cat:t.cat||'',payee:t.payee||'',acct:t.acct||'',notes:t.notes||''
+  }));
+  window._allTxns=txns;
+  window._allMonths=p.months||[...new Set(txns.map(t=>t.month))].sort();
+  if(p.settings)SETTINGS={...SETTINGS,...p.settings};
+  // Rebuild history for all months
+  HISTORY={};
+  for(const m of window._allMonths)saveMonth(analyzeMonth(txns,m));
+  const startMonth=p.currentMonth||window._allMonths[window._allMonths.length-1];
+  CURRENT=analyzeMonth(txns,startMonth);
+  // Show the app (skip upload screen)
+  $('upload-screen').style.display='none';
+  $('app').style.display='flex';
+  $('main-tabs').style.display='flex';
+  renderMonthStrip();
+  renderAll();
+  return true;
+}
+
+if(!bootFromSharedPayload()){
+  // Normal startup: if history exists, show quick-load on upload screen
+  const histMonths=Object.keys(HISTORY).sort().reverse();
+  if(histMonths.length>0){
+    $('hist-quick').innerHTML=`<div style="font-size:0.82rem;color:var(--tx2);margin-bottom:10px">Or load a saved month:</div>
+      ${histMonths.slice(0,3).map(m=>`<button class="hdr-btn" style="margin:4px" onclick="loadHistoryMonth('${m}');
+        document.getElementById('upload-screen').style.display='none';
+        document.getElementById('app').style.display='flex';
+        document.getElementById('main-tabs').style.display='flex';
+        renderMonthStrip();">${HISTORY[m].label}</button>`).join('')}`;
+  }
 }
 </script>
 </body>
