@@ -658,7 +658,8 @@ function analyzeMonth(txns,targetMonth){
     payeeTotals,
     otDetail,
     txnCount:mo.length,
-    expenseCount:expenses.length
+    expenseCount:expenses.length,
+    _detailAvailable:true
   };
 }
 
@@ -749,11 +750,14 @@ function renderMonthStrip(){
   if(months.length<=1){$('month-strip').style.display='none';return}
   $('month-strip').style.display='flex';
   const currentM=CURRENT?CURRENT.month:months[months.length-1];
+  const detailM=window._detailMonth;
   $('month-strip').innerHTML=months.map(m=>{
     const h=HISTORY[m];const gap=h?(h.totalReg-SETTINGS.target):0;
     const dotColor=!h?'var(--mut)':gap>500?'var(--red)':gap<-200?'var(--grn)':'var(--gold)';
+    // In a shared file, mark which month has full detail
+    const star=(detailM&&m===detailM)?' ★':'';
     return `<div class="mo-pill${m===currentM?' active':''}" onclick="selectMonth('${m}')">
-      <span class="mo-dot" style="background:${dotColor}"></span>${monthLabel(m)}</div>`;
+      <span class="mo-dot" style="background:${dotColor}"></span>${monthLabel(m)}${star}</div>`;
   }).join('');
   // Scroll active pill into view
   setTimeout(()=>{
@@ -763,15 +767,31 @@ function renderMonthStrip(){
 }
 
 function selectMonth(m){
-  if(window._allTxns){
+  // Does this month have transaction-level detail available?
+  const hasTxns=window._allTxns&&window._allTxns.some(t=>t.month===m);
+  if(hasTxns){
     CURRENT=analyzeMonth(window._allTxns,m);
-    saveMonth(CURRENT);
+    if(!window._detailMonth)saveMonth(CURRENT); // don't overwrite shared summaries
+    CURRENT._detailAvailable=true;
   }else if(HISTORY[m]){
-    CURRENT={...HISTORY[m],regular:[],onetime:[],payeeTotals:{},txnCount:0,expenseCount:0};
+    // Reconstruct a display-only CURRENT from the stored summary (no drill-downs)
+    const h=HISTORY[m];
+    CURRENT={...h,regular:[],onetime:[],payeeTotals:{},
+      bucketTxns:{},catTxns:{},typeTagTxns:{},topGroupTxns:{},
+      txnCount:0,expenseCount:0,_detailAvailable:false};
   }
   renderMonthStrip();
   renderAll();
   window.scrollTo(0,0);
+}
+
+// Banner shown on detail tabs when the current month has no transaction-level detail
+// (happens in a shared file for months other than the one that was shared)
+function detailLockBanner(){
+  if(!CURRENT||CURRENT._detailAvailable!==false)return '';
+  const dm=window._detailMonth?monthLabel(window._detailMonth):'the shared month';
+  return `<div class="insight" style="background:var(--goldL);border-color:#e8d18a">
+    Showing totals only for ${CURRENT.label}. Transaction-level detail was shared only for <strong>${dm}</strong> — tap that month (★) to drill into individual transactions.</div>`;
 }
 
 // ═══════════════════ TRANSACTION DETAIL PANEL ═══════════════════
@@ -1021,7 +1041,7 @@ function renderBuckets(){
   const sorted=Object.entries(d.buckets).sort((a,b)=>b[1]-a[1]);
   const maxBk=sorted.length?sorted[0][1]:1;
 
-  let h=`<div class="card"><div class="card-title">Bucket Spending — ${d.label}</div><div class="bucket-list">`;
+  let h=`${detailLockBanner()}<div class="card"><div class="card-title">Bucket Spending — ${d.label}</div><div class="bucket-list">`;
   sorted.forEach(([name,val],i)=>{
     const a=avg.bucketAvg[name]||val;const delta=val-a;
     const cls=delta>50?'delta-up':delta<-50?'delta-down':'delta-flat';
@@ -1089,7 +1109,7 @@ function renderCategories(){
   }
 
   // Filter buttons show the letter key; full label appears as the card title
-  let h=`<div class="grp-tabs" id="cat-grp-tabs" style="flex-wrap:wrap">`;
+  let h=`${detailLockBanner()}<div class="grp-tabs" id="cat-grp-tabs" style="flex-wrap:wrap">`;
   groupKeys.forEach(k=>{
     const shortLabel=(topLabels[k]||k).replace(/^[A-Z]:/,'').trim()||k;
     h+=`<div class="grp-tab${k===activeGroup?' active':''}" data-g="${k}" onclick="switchCatGroup('${k}')" title="${topLabels[k]||k}">${k}: ${shortLabel}</div>`;
@@ -1113,7 +1133,7 @@ function renderTags(){
   // Section 1: Buckets
   const buckets=Object.entries(d.buckets||{}).sort((a,b)=>b[1]-a[1]);
   const maxBk=buckets.length?buckets[0][1]:1;
-  let h=`<div class="card"><div class="card-title">Buckets — ${d.label}</div>`;
+  let h=`${detailLockBanner()}<div class="card"><div class="card-title">Buckets — ${d.label}</div>`;
   if(buckets.length===0){
     h+=`<div style="color:var(--mut);font-size:0.82rem">No bucket tags this month.</div>`;
   }else{
@@ -1164,9 +1184,10 @@ function renderTags(){
 function renderTrends(){
   const allMonths=Object.keys(HISTORY).sort();
   if(allMonths.length<2){
+    const locked=window._lockedMonth;
     $('trends-page').innerHTML=`<div class="card" style="text-align:center;padding:40px 20px">
-      <div style="font-size:0.92rem;color:var(--tx2)">Need at least 2 months of data for trends.</div>
-      <div style="font-size:0.78rem;color:var(--mut);margin-top:8px">Upload a CSV with multiple months or come back after saving more months.</div>
+      <div style="font-size:0.92rem;color:var(--tx2)">${locked?'This shared snapshot covers a single month.':'Need at least 2 months of data for trends.'}</div>
+      <div style="font-size:0.78rem;color:var(--mut);margin-top:8px">${locked?'Trends compare multiple months — view the Score, Buckets, Detail, and Tags tabs for the full picture of '+monthLabel(locked)+'.':'Upload a CSV with multiple months or come back after saving more months.'}</div>
     </div>`;
     return;
   }
@@ -1410,8 +1431,14 @@ function renderTrends(){
 
 // Open transaction detail for a clicked point on the category trend chart
 function openTrendPointDetail(kind,key,month,label){
-  if(!window._allTxns){
-    showTxnPanel(label+' — '+monthLabel(month),null);
+  // Only the shared detail month has transactions in a shared file
+  const hasTxns=window._allTxns&&window._allTxns.some(t=>t.month===month);
+  if(!hasTxns){
+    $('txn-title').textContent=label+' — '+monthLabel(month);
+    $('txn-total').textContent='';
+    const dm=window._detailMonth?monthLabel(window._detailMonth):'the shared month';
+    $('txn-list').innerHTML=`<div class="txn-empty">Transaction detail for ${monthLabel(month)} wasn't included in this shared file.<br><br>Only <strong>${dm}</strong> includes individual transactions. The chart still shows ${monthLabel(month)}'s total for comparison.</div>`;
+    $('txn-overlay').classList.add('open');
     return;
   }
   const monthData=analyzeMonth(window._allTxns,month);
@@ -1575,44 +1602,50 @@ window.generateShareFile=function(){
     return;
   }
 
-  // Serialize the full transaction dataset (dates → ISO strings for JSON safety)
-  const txnsForShare=window._allTxns.map(t=>({
+  // The month whose transaction-level detail we expose
+  const shareMonth=CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1];
+
+  // Full transactions for the shared month ONLY (enables drill-downs for that month)
+  const monthTxns=window._allTxns.filter(t=>t.month===shareMonth);
+  const txnsForShare=monthTxns.map(t=>({
     date:t.date instanceof Date?t.date.toISOString():t.date,
     month:t.month,amount:t.amount,excl:t.excl,tags:t.tags,
     cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
   }));
+
+  // Summary totals for ALL months (for Trends + History charts).
+  // Strip otDetail payee names from non-shared months to avoid leaking detail.
+  const historyForShare={};
+  for(const m of Object.keys(HISTORY)){
+    const h=JSON.parse(JSON.stringify(HISTORY[m]));
+    if(m!==shareMonth) h.otDetail=[];  // keep only totals for other months
+    historyForShare[m]=h;
+  }
+
   const payload={
     txns:txnsForShare,
-    months:window._allMonths,
+    detailMonth:shareMonth,
+    allMonths:window._allMonths.slice(),
+    history:historyForShare,
     settings:SETTINGS,
-    currentMonth:CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1],
+    currentMonth:shareMonth,
     generated:new Date().toISOString()
   };
 
   // Clone the entire current document — this IS the full app
   const docClone=document.documentElement.cloneNode(true);
-
-  // Remove the live file-input value and any transient state from the clone (harmless, but tidy)
-  // Inject the embedded data + bootstrap script right before </body>
   const bootScript=document.createElement('script');
   bootScript.id='__shared_data__';
-  bootScript.textContent=
-    'window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
-
-  // Find the body in the clone and append the boot data as the FIRST script so it runs setup
+  bootScript.textContent='window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
   const cloneBody=docClone.querySelector('body');
-  // Place the payload script at the very start of body so it exists before the main script runs
   cloneBody.insertBefore(bootScript,cloneBody.firstChild);
 
-  // Serialize
   const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
-
   const blob=new Blob([shareHTML],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  const mlabel=(CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1]);
-  a.download=`spendcheck-${mlabel}.html`;
+  a.download=`spendcheck-${shareMonth}.html`;
   a.click();URL.revokeObjectURL(url);
 };
 
@@ -1647,26 +1680,31 @@ loadHistory();
 function bootFromSharedPayload(){
   const p=window.__SHARED_PAYLOAD__;
   if(!p)return false;
-  // Rehydrate transactions (ISO date strings → Date objects)
-  const txns=p.txns.map(t=>({
+  // Rehydrate the shared month's transactions (ISO date strings → Date objects)
+  const txns=(p.txns||[]).map(t=>({
     date:t.date?new Date(t.date):null,
     month:t.month,amount:t.amount,excl:t.excl,tags:t.tags||[],
     cat:t.cat||'',payee:t.payee||'',acct:t.acct||'',notes:t.notes||''
   }));
-  window._allTxns=txns;
-  window._allMonths=p.months||[...new Set(txns.map(t=>t.month))].sort();
+  window._allTxns=txns;                       // only the shared month has transactions
+  window._detailMonth=p.detailMonth||null;    // the one month with drill-down detail
+  window._allMonths=p.allMonths||[p.detailMonth];
   if(p.settings)SETTINGS={...SETTINGS,...p.settings};
-  // Rebuild history for all months
-  HISTORY={};
-  for(const m of window._allMonths)saveMonth(analyzeMonth(txns,m));
-  const startMonth=p.currentMonth||window._allMonths[window._allMonths.length-1];
-  CURRENT=analyzeMonth(txns,startMonth);
+
+  // Load ALL months' summaries directly from the payload (for Trends + History)
+  HISTORY=p.history||{};
+  // Make sure the shared month's full analysis is available
+  CURRENT=analyzeMonth(txns,window._detailMonth);
+
   // Show the app (skip upload screen)
   $('upload-screen').style.display='none';
   $('app').style.display='flex';
   $('main-tabs').style.display='flex';
   renderMonthStrip();
   renderAll();
+  // Recipient can't add their own data
+  const up=document.querySelector('label[for="csv-input"]');
+  if(up)up.style.display='none';
   return true;
 }
 
