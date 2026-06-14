@@ -1596,7 +1596,7 @@ window.copyShareText=function(){
   }).catch(()=>{});
 };
 
-window.generateShareFile=async function(){
+window.generateShareFile=function(){
   if(!window._allTxns||!window._allMonths){
     alert('Please upload a CSV first so there is data to share.');
     return;
@@ -1631,28 +1631,33 @@ window.generateShareFile=async function(){
     generated:new Date().toISOString()
   };
 
-  // Get a PRISTINE copy of the app's own source (not the mutated live DOM).
-  // Fetching our own URL returns the original file exactly as served.
-  let baseHTML;
-  try{
-    const resp=await fetch(window.location.href);
-    baseHTML=await resp.text();
-  }catch(e){
-    // Fallback: serialize current document (works, but live-DOM based)
-    baseHTML='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
-  }
+  // Clone the live document, then RESET all dynamic containers to empty so the
+  // shared file starts from a clean shell (not the owner's rendered state).
+  const docClone=document.documentElement.cloneNode(true);
 
-  // Inject the payload as a script right after <body> so it is defined
-  // before the main app script runs.
-  const payloadTag='<script id="__shared_data__">window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';<\/script>';
-  let shareHTML;
-  if(baseHTML.indexOf('<body>')!==-1){
-    shareHTML=baseHTML.replace('<body>','<body>\n'+payloadTag);
-  }else if(baseHTML.match(/<body[^>]*>/)){
-    shareHTML=baseHTML.replace(/(<body[^>]*>)/,'$1\n'+payloadTag);
-  }else{
-    shareHTML=payloadTag+baseHTML;
-  }
+  // Empty every container the app renders into, and reset visibility to defaults
+  const resetIds=['sc-page','bk-page','cat-page','tags-page','trends-page','hist-page','share-page','month-strip','hist-quick'];
+  resetIds.forEach(id=>{const el=docClone.querySelector('#'+id);if(el)el.innerHTML='';});
+  // Restore the original initial visibility: upload screen shown, app+tabs+strip hidden
+  const up=docClone.querySelector('#upload-screen'); if(up){up.style.display='';}
+  const ap=docClone.querySelector('#app'); if(ap){ap.style.display='none';}
+  const tb=docClone.querySelector('#main-tabs'); if(tb){tb.style.display='none';}
+  const ms=docClone.querySelector('#month-strip'); if(ms){ms.style.display='none';}
+  // Clear any stale active tab states back to the first tab
+  docClone.querySelectorAll('.tab-content').forEach((t,i)=>{t.classList.toggle('active',t.id==='tab-scorecard');});
+  docClone.querySelectorAll('.tab-btn').forEach(b=>{b.classList.toggle('active',b.dataset.tab==='scorecard');});
+  // Remove any previously-injected shared-data script (avoid double payloads)
+  const old=docClone.querySelector('#__shared_data__'); if(old)old.remove();
+
+  // Inject the payload into <head> so it is GUARANTEED defined before the
+  // main app script (which lives at the end of <body>) executes.
+  const head=docClone.querySelector('head');
+  const payloadScript=docClone.ownerDocument.createElement('script');
+  payloadScript.id='__shared_data__';
+  payloadScript.textContent='window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
+  head.appendChild(payloadScript);
+
+  const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
 
   const blob=new Blob([shareHTML],{type:'text/html'});
   const url=URL.createObjectURL(blob);
