@@ -1571,22 +1571,93 @@ function renderShare(){
   else summary+=`We drew ${$f(Math.abs(netIncome))} from savings to cover the gap.`;
 
   $('share-page').innerHTML=`
-    <div class="card"><div class="card-title">Share Full App — ${d.label}</div>
+    <div class="card"><div class="card-title">Share with Kathy — ${d.label}</div>
       <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:14px">
-        This generates a complete copy of SpendCheck with all your data built in.
-        Kathy opens it on her phone and gets the full app — every tab, charts,
-        drill-downs, and notes — with nothing to install and no upload needed.
-        It opens on whichever month you have selected now (${d.label}).
+        Creates a link with this month's data built in. Text or email it to Kathy —
+        she taps it and the full app opens in her browser, already loaded on ${d.label}.
+        She sees every tab and the month-over-month trends; detailed transactions
+        are included only for ${d.label}.
       </p>
-      <button class="share-btn" onclick="generateShareFile()">Generate & Download Share File</button>
+      <button class="share-btn" onclick="generateShareLink()">Create Share Link</button>
+      <div id="share-link-box" style="display:none;margin-top:12px">
+        <div id="share-link-text" style="font-size:0.72rem;font-family:'JetBrains Mono',monospace;
+          background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px;
+          word-break:break-all;max-height:90px;overflow-y:auto;color:var(--tx2)"></div>
+        <button class="share-btn" style="margin-top:8px;background:var(--grn)" onclick="copyShareLink()">Copy Link</button>
+        <div id="share-link-status" style="font-size:0.72rem;color:var(--mut);text-align:center;margin-top:6px"></div>
+      </div>
     </div>
 
     <div class="card"><div class="card-title">Text Summary (tap to copy)</div>
       <div class="share-preview" id="share-text" onclick="copyShareText()" style="cursor:pointer">${summary}</div>
       <div style="font-size:0.72rem;color:var(--mut);text-align:center">Tap to copy to clipboard</div>
     </div>
+
+    <div class="card"><div class="card-title">Advanced: Download File</div>
+      <p style="font-size:0.78rem;color:var(--mut);margin-bottom:12px">
+        The link above is the easy way. If you specifically want a file instead,
+        download one here — but note that emailing an HTML file to an iPhone often
+        opens in a preview that won't run. The link works far more reliably.
+      </p>
+      <button class="hdr-btn" style="width:100%;justify-content:center;padding:12px" onclick="generateShareFile()">Download Share File</button>
+    </div>
   `;
 }
+
+window.buildSharePayloadB64=function(){
+  const shareMonth=CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1];
+  const monthTxns=window._allTxns.filter(t=>t.month===shareMonth);
+  const txnsForShare=monthTxns.map(t=>({
+    date:t.date instanceof Date?t.date.toISOString():t.date,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags,
+    cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
+  }));
+  const historyForShare={};
+  for(const m of Object.keys(HISTORY)){
+    const h=JSON.parse(JSON.stringify(HISTORY[m]));
+    if(m!==shareMonth) h.otDetail=[];
+    historyForShare[m]=h;
+  }
+  const payload={
+    txns:txnsForShare,detailMonth:shareMonth,allMonths:window._allMonths.slice(),
+    history:historyForShare,settings:SETTINGS,currentMonth:shareMonth,generated:new Date().toISOString()
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+};
+
+window.generateShareLink=function(){
+  if(!window._allTxns||!window._allMonths){
+    alert('Please upload a CSV first so there is data to share.');
+    return;
+  }
+  const b64=buildSharePayloadB64();
+  // Base URL = current page without any existing hash
+  const base=window.location.href.split('#')[0];
+  const link=base+'#data='+encodeURIComponent(b64);
+  $('share-link-text').textContent=link;
+  $('share-link-box').style.display='block';
+  // Try to copy immediately
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>{
+      $('share-link-status').textContent='✓ Link copied — paste it into a text or email to Kathy';
+    }).catch(()=>{
+      $('share-link-status').textContent='Tap "Copy Link" below, then paste into a text or email';
+    });
+  }
+};
+
+window.copyShareLink=function(){
+  const link=$('share-link-text').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>{
+      $('share-link-status').textContent='✓ Copied! Paste into a text or email to Kathy';
+    }).catch(()=>{
+      $('share-link-status').textContent='Press and hold the link above to select and copy it';
+    });
+  }else{
+    $('share-link-status').textContent='Press and hold the link above to select and copy it';
+  }
+};
 
 window.copyShareText=function(){
   const text=$('share-text').textContent;
@@ -1705,7 +1776,17 @@ loadHistory();
 
 // ── If this is a SHARED file with embedded data, load it automatically ──
 function getSharedPayload(){
-  // Preferred: base64-encoded payload (safe for transfer & script-tag embedding)
+  // Preferred for links: payload in the URL hash (#data=...). Opens in real Safari.
+  try{
+    const h=window.location.hash||'';
+    const m=h.match(/[#&]data=([^&]+)/);
+    if(m&&m[1]){
+      const b64=decodeURIComponent(m[1]);
+      const json=decodeURIComponent(escape(atob(b64)));
+      return JSON.parse(json);
+    }
+  }catch(e){/* fall through */}
+  // Base64-encoded payload embedded in the file (for downloaded share files)
   if(window.__SHARED_PAYLOAD_B64__){
     try{
       const json=decodeURIComponent(escape(atob(window.__SHARED_PAYLOAD_B64__)));
@@ -1762,7 +1843,8 @@ if(!safeBootShared()){
 }
 
 function safeBootShared(){
-  if(!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
+  const hasHash=/[#&]data=/.test(window.location.hash||'');
+  if(!hasHash&&!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
   try{
     return bootFromSharedPayload();
   }catch(e){
