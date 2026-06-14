@@ -1654,7 +1654,13 @@ window.generateShareFile=function(){
   const head=docClone.querySelector('head');
   const payloadScript=docClone.ownerDocument.createElement('script');
   payloadScript.id='__shared_data__';
-  payloadScript.textContent='window.__SHARED_PAYLOAD__='+JSON.stringify(payload)+';';
+  // Encode the payload as base64 so it can NEVER break out of the script tag
+  // (raw JSON can contain tag-closing sequences or U+2028/U+2029 which break parsing)
+  // and so it survives any transfer method (AirDrop, email, Messages) byte-for-byte.
+  const payloadJSON=JSON.stringify(payload);
+  // Encode as UTF-8 safe base64
+  const payloadB64=btoa(unescape(encodeURIComponent(payloadJSON)));
+  payloadScript.textContent='window.__SHARED_PAYLOAD_B64__="'+payloadB64+'";';
   head.appendChild(payloadScript);
 
   const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
@@ -1698,8 +1704,21 @@ loadSettings();
 loadHistory();
 
 // ── If this is a SHARED file with embedded data, load it automatically ──
+function getSharedPayload(){
+  // Preferred: base64-encoded payload (safe for transfer & script-tag embedding)
+  if(window.__SHARED_PAYLOAD_B64__){
+    try{
+      const json=decodeURIComponent(escape(atob(window.__SHARED_PAYLOAD_B64__)));
+      return JSON.parse(json);
+    }catch(e){return null;}
+  }
+  // Backward-compat: raw JSON object (older shared files)
+  if(window.__SHARED_PAYLOAD__)return window.__SHARED_PAYLOAD__;
+  return null;
+}
+
 function bootFromSharedPayload(){
-  const p=window.__SHARED_PAYLOAD__;
+  const p=getSharedPayload();
   if(!p)return false;
   // Rehydrate the shared month's transactions (ISO date strings → Date objects)
   const txns=(p.txns||[]).map(t=>({
@@ -1743,7 +1762,7 @@ if(!safeBootShared()){
 }
 
 function safeBootShared(){
-  if(!window.__SHARED_PAYLOAD__)return false;
+  if(!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
   try{
     return bootFromSharedPayload();
   }catch(e){
