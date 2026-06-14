@@ -1630,13 +1630,14 @@ window.generateShareLink=function(){
     alert('Please upload a CSV first so there is data to share.');
     return;
   }
-  const b64=buildSharePayloadB64();
-  // Base URL = current page without any existing hash
+  let b64=buildSharePayloadB64();
+  // Convert to URL-safe base64 so no character needs URL-encoding and no
+  // messenger (Messages, Mail) can corrupt it: + → -, / → _, drop padding =
+  const urlSafe=b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   const base=window.location.href.split('#')[0];
-  const link=base+'#data='+encodeURIComponent(b64);
+  const link=base+'#data='+urlSafe;
   $('share-link-text').textContent=link;
   $('share-link-box').style.display='block';
-  // Try to copy immediately
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
       $('share-link-status').textContent='✓ Link copied — paste it into a text or email to Kathy';
@@ -1775,23 +1776,32 @@ loadSettings();
 loadHistory();
 
 // ── If this is a SHARED file with embedded data, load it automatically ──
+function b64FromUrlSafe(s){
+  // Restore standard base64 from URL-safe variant
+  s=s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4)s+='=';
+  return s;
+}
 function getSharedPayload(){
   // Preferred for links: payload in the URL hash (#data=...). Opens in real Safari.
   try{
     const h=window.location.hash||'';
     const m=h.match(/[#&]data=([^&]+)/);
     if(m&&m[1]){
-      const b64=decodeURIComponent(m[1]);
+      let raw=m[1];
+      // Undo any URL-encoding a messenger may have applied
+      try{raw=decodeURIComponent(raw);}catch(e){}
+      const b64=b64FromUrlSafe(raw);
       const json=decodeURIComponent(escape(atob(b64)));
       return JSON.parse(json);
     }
-  }catch(e){/* fall through */}
+  }catch(e){window._bootError='hash:'+e.message;}
   // Base64-encoded payload embedded in the file (for downloaded share files)
   if(window.__SHARED_PAYLOAD_B64__){
     try{
       const json=decodeURIComponent(escape(atob(window.__SHARED_PAYLOAD_B64__)));
       return JSON.parse(json);
-    }catch(e){return null;}
+    }catch(e){window._bootError='embed:'+e.message;return null;}
   }
   // Backward-compat: raw JSON object (older shared files)
   if(window.__SHARED_PAYLOAD__)return window.__SHARED_PAYLOAD__;
@@ -1829,6 +1839,31 @@ function bootFromSharedPayload(){
   return true;
 }
 
+function safeBootShared(){
+  const hasHash=/[#&]data=/.test(window.location.hash||'');
+  if(!hasHash&&!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
+  try{
+    const ok=bootFromSharedPayload();
+    if(!ok&&hasHash){
+      // Hash was present but payload didn't parse — show a diagnostic instead of silent upload screen
+      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center">'+
+        '<h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Link data didn\'t load</h2>'+
+        '<p style="color:var(--tx2);font-size:0.8rem">The link opened but its data couldn\'t be read'+
+        (window._bootError?' ('+window._bootError+')':'')+'. The link may have been shortened or altered in transit. '+
+        'Try copying the full link again.</p></div>';
+      return true;
+    }
+    return ok;
+  }catch(e){
+    try{
+      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center">'+
+        '<h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Couldn\'t open this snapshot</h2>'+
+        '<p style="color:var(--tx2);font-size:0.85rem">Problem loading shared data: '+e.message+'</p></div>';
+    }catch(_){}
+    return true;
+  }
+}
+
 if(!safeBootShared()){
   // Normal startup: if history exists, show quick-load on upload screen
   const histMonths=Object.keys(HISTORY).sort().reverse();
@@ -1839,20 +1874,6 @@ if(!safeBootShared()){
         document.getElementById('app').style.display='flex';
         document.getElementById('main-tabs').style.display='flex';
         renderMonthStrip();">${HISTORY[m].label}</button>`).join('')}`;
-  }
-}
-
-function safeBootShared(){
-  const hasHash=/[#&]data=/.test(window.location.hash||'');
-  if(!hasHash&&!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
-  try{
-    return bootFromSharedPayload();
-  }catch(e){
-    // If boot fails, at least show the app shell with an error rather than a blank screen
-    try{
-      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center"><h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Couldn\'t open this snapshot</h2><p style="color:var(--tx2);font-size:0.85rem">There was a problem loading the shared data. Please ask for a fresh copy.</p></div>';
-    }catch(_){}
-    return true; // we handled it; don't fall through to normal startup
   }
 }
 </script>
