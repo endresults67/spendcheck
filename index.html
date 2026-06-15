@@ -1574,27 +1574,40 @@ function renderShare(){
     <div class="card"><div class="card-title">Share with Kathy — ${d.label}</div>
       <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:14px">
         The reliable way: publish Kathy's view as a normal web page on your GitHub.
-        It opens in Safari like any website — nothing to attach, nothing iOS can break.
-        She gets the full app, opened on ${d.label}, with all months' trends and
-        detail for ${d.label}.
+        She gets the full app at a clean link, opened on ${d.label}, with all months'
+        trends and detail for ${d.label}. No files to send.
       </p>
-      <ol style="font-size:0.8rem;color:var(--tx2);line-height:1.7;margin:0 0 14px 18px;padding:0">
-        <li>Tap <strong>Download Data File</strong> below — saves <code>spendcheck-data.js</code></li>
-        <li>Upload that file to your GitHub <code>spendcheck</code> repo (same place as index.html)</li>
-        <li>Text Kathy this link: <strong>endresults67.github.io/spendcheck/share.html</strong></li>
+      <ol style="font-size:0.8rem;color:var(--tx2);line-height:1.8;margin:0 0 14px 18px;padding:0">
+        <li>Tap <strong>Copy Data</strong> below</li>
+        <li>In GitHub, open your <code>spendcheck</code> repo → Add file → Create new file</li>
+        <li>Name it exactly <code>spendcheck-data.js</code></li>
+        <li>Paste, then Commit</li>
+        <li>Text Kathy: <strong>endresults67.github.io/spendcheck/share.html</strong></li>
       </ol>
-      <button class="share-btn" onclick="downloadDataFile()">Download Data File</button>
-      <div id="data-file-status" style="font-size:0.72rem;color:var(--mut);text-align:center;margin-top:8px"></div>
+      <button class="share-btn" onclick="copyDataContent()">Copy Data</button>
+      <div id="data-copy-status" style="font-size:0.72rem;color:var(--grn);text-align:center;margin-top:8px"></div>
+      <div id="data-content-box" style="display:none;margin-top:10px">
+        <div style="font-size:0.7rem;color:var(--mut);margin-bottom:4px">If the copy didn't work, select all of this and copy manually:</div>
+        <textarea id="data-content-text" readonly style="width:100%;height:80px;font-size:0.62rem;
+          font-family:'JetBrains Mono',monospace;border:1px solid var(--bdr);border-radius:8px;
+          padding:8px;background:var(--bg);color:var(--tx2);resize:vertical" onclick="this.select()"></textarea>
+      </div>
     </div>
 
-    <div class="card"><div class="card-title">One-time setup: publish share.html</div>
+    <div class="card"><div class="card-title">One-time setup: create share.html</div>
       <p style="font-size:0.78rem;color:var(--tx2);margin-bottom:12px">
-        You only do this once. Tap below to download <code>share.html</code>, then upload it
-        to your <code>spendcheck</code> repo alongside index.html. After that, you only ever
-        update the data file each month.
+        Do this once. Tap <strong>Copy share.html</strong>, then in GitHub create a new file
+        named <code>share.html</code> in your repo and paste. After that, you only update
+        the data file each month.
       </p>
-      <button class="hdr-btn" style="width:100%;justify-content:center;padding:12px" onclick="downloadShareHtml()">Download share.html (one time)</button>
-      <div id="sharehtml-status" style="font-size:0.72rem;color:var(--mut);text-align:center;margin-top:8px"></div>
+      <button class="hdr-btn" style="width:100%;justify-content:center;padding:12px" onclick="copyShareHtmlContent()">Copy share.html</button>
+      <div id="sharehtml-copy-status" style="font-size:0.72rem;color:var(--grn);text-align:center;margin-top:8px"></div>
+      <div id="sharehtml-content-box" style="display:none;margin-top:10px">
+        <div style="font-size:0.7rem;color:var(--mut);margin-bottom:4px">If the copy didn't work, select all of this and copy manually:</div>
+        <textarea id="sharehtml-content-text" readonly style="width:100%;height:80px;font-size:0.62rem;
+          font-family:'JetBrains Mono',monospace;border:1px solid var(--bdr);border-radius:8px;
+          padding:8px;background:var(--bg);color:var(--tx2);resize:vertical" onclick="this.select()"></textarea>
+      </div>
     </div>
 
     <div class="card"><div class="card-title">Text Summary (tap to copy)</div>
@@ -1625,32 +1638,30 @@ window.buildSharePayloadB64=function(){
   return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 };
 
-function triggerDownload(filename,content,mime){
-  const blob=new Blob([content],{type:mime||'text/plain'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=filename;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+function copyToClipboard(text,statusEl,fallbackBox,fallbackText){
+  function showFallback(){
+    if(fallbackBox)fallbackBox.style.display='block';
+    if(fallbackText){fallbackText.value=text;}
+    if(statusEl)statusEl.textContent='Couldn\'t auto-copy — select the text below and copy manually';
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      if(statusEl)statusEl.textContent='✓ Copied! Now paste it into GitHub';
+    }).catch(showFallback);
+  }else{
+    showFallback();
+  }
 }
 
-window.downloadDataFile=function(){
+window.copyDataContent=function(){
   if(!window._allTxns||!window._allMonths){alert('Please upload a CSV first.');return;}
   const b64=buildSharePayloadB64();
-  // A tiny JS file that sets the payload global. Loaded by share.html.
   const content='window.__SHARED_PAYLOAD_B64__="'+b64+'";';
-  triggerDownload('spendcheck-data.js',content,'application/javascript');
-  const el=$('data-file-status');
-  if(el)el.textContent='✓ Saved spendcheck-data.js — now upload it to your GitHub repo';
+  copyToClipboard(content,$('data-copy-status'),$('data-content-box'),$('data-content-text'));
 };
 
-window.downloadShareHtml=function(){
-  // share.html is a COMPLETE copy of this app, with one line added to the <head>
-  // that loads spendcheck-data.js (which sets the payload global before the app runs).
-  // No fetch, no dynamic loading — just the app, served as a normal page.
+window.copyShareHtmlContent=function(){
   const docClone=document.documentElement.cloneNode(true);
-
-  // Reset dynamic containers so the shared copy starts clean
   ['sc-page','bk-page','cat-page','tags-page','trends-page','hist-page','share-page','month-strip','hist-quick'].forEach(function(id){
     var el=docClone.querySelector('#'+id);if(el)el.innerHTML='';
   });
@@ -1661,18 +1672,12 @@ window.downloadShareHtml=function(){
   docClone.querySelectorAll('.tab-content').forEach(function(t){t.classList.toggle('active',t.id==='tab-scorecard');});
   docClone.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab==='scorecard');});
   var oldData=docClone.querySelector('#__shared_data__');if(oldData)oldData.remove();
-
-  // Add the data-file include as the FIRST thing in <head> so the payload global
-  // is defined before the app's main script (end of body) runs.
   var head=docClone.querySelector('head');
   var dataInclude=docClone.ownerDocument.createElement('script');
   dataInclude.src='spendcheck-data.js';
   head.insertBefore(dataInclude,head.firstChild);
-
   var shareHtml='<!DOCTYPE html>\n'+docClone.outerHTML;
-  triggerDownload('share.html',shareHtml,'text/html');
-  var el=$('sharehtml-status');
-  if(el)el.textContent='✓ Saved share.html — upload it to your repo once';
+  copyToClipboard(shareHtml,$('sharehtml-copy-status'),$('sharehtml-content-box'),$('sharehtml-content-text'));
 };
 
 window.copyShareText=function(){
