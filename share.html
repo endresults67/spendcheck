@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en"><head><script src="spendcheck-data.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SpendCheck">
+<title>SpendCheck</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;family=DM+Sans:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f6fa;--card:#ffffff;--card2:#f0f2f8;--bdr:#e2e6f0;--bdr2:#d0d5e3;
+  --tx:#1e2a3a;--tx2:#4a5568;--mut:#8492a6;--fnt:#c8cdd8;
+  --acc:#3b6fc2;--acc2:#2c5aa0;--accL:#e8eefb;
+  --grn:#1a8a5a;--grnL:#e6f5ee;--grnBg:#d1f0df;
+  --red:#d03e3e;--redL:#fdeaea;--redBg:#fbd5d5;
+  --gold:#c68a17;--goldL:#fef7e6;
+  --bk1:#3b6fc2;--bk2:#1a8a5a;--bk3:#c68a17;--bk4:#9b5fc2;--bk5:#d06c3e;
+  --bk6:#c23b6f;--bk7:#d03e3e;--bk8:#3bab8a;--bk9:#5f8ac2;--bk10:#7aab3b;
+  --shadow:0 1px 3px rgba(30,42,58,.06),0 1px 2px rgba(30,42,58,.04);
+  --shadow2:0 4px 12px rgba(30,42,58,.08),0 2px 4px rgba(30,42,58,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;height:100%}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;
+  min-height:100%;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;
+  padding-bottom:68px}
+
+/* ── HEADER ── */
+.header{
+  background:var(--card);border-bottom:1px solid var(--bdr);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:40;
+}
+.header h1{font-family:'Source Serif 4',serif;font-size:1.3rem;font-weight:600;color:var(--tx);letter-spacing:-.3px}
+.header h1 span{color:var(--acc);font-weight:400;font-style:italic}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.hdr-btn{background:none;border:1px solid var(--bdr);color:var(--tx2);padding:7px 12px;
+  border-radius:8px;font-size:0.75rem;font-family:'DM Sans',sans-serif;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:all .15s}
+.hdr-btn:hover{border-color:var(--acc);color:var(--acc)}
+.hdr-btn svg{width:16px;height:16px}
+
+/* ── BOTTOM TAB BAR ── */
+.tab-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:var(--card);border-top:1px solid var(--bdr);
+  display:flex;justify-content:space-around;
+  padding:6px 0 env(safe-area-inset-bottom,8px);
+  box-shadow:0 -2px 10px rgba(30,42,58,.06);
+}
+.tab-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 12px;cursor:pointer;color:var(--mut);
+  font-size:0.62rem;font-weight:500;letter-spacing:.3px;
+  transition:color .15s;border:none;background:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-btn.active{color:var(--acc)}
+.tab-btn svg{width:22px;height:22px}
+.tab-content{display:none;flex:1}.tab-content.active{display:block}
+
+/* ── PAGE ── */
+.page{padding:16px 20px 24px;max-width:680px;margin:0 auto;width:100%}
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:70vh;text-align:center;padding:40px 24px}
+.upload-screen h2{font-family:'Source Serif 4',serif;font-size:1.5rem;font-weight:400;margin-bottom:8px}
+.upload-screen p{color:var(--tx2);font-size:0.88rem;margin-bottom:28px;line-height:1.5;max-width:340px}
+.drop-zone{
+  width:100%;max-width:360px;padding:48px 24px;border:2px dashed var(--bdr2);
+  border-radius:16px;cursor:pointer;transition:all .2s;background:var(--card);
+}
+.drop-zone:hover,.drop-zone.over{border-color:var(--acc);background:var(--accL)}
+.drop-zone svg{width:40px;height:40px;color:var(--mut);margin-bottom:12px}
+.drop-zone .dz-label{font-size:0.88rem;color:var(--tx2);font-weight:500}
+.drop-zone .dz-sub{font-size:0.72rem;color:var(--mut);margin-top:6px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;
+  padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+.card-title{font-family:'Source Serif 4',serif;font-size:0.92rem;font-weight:600;
+  color:var(--tx);margin-bottom:12px}
+.card-sub{font-size:0.72rem;color:var(--mut);margin-top:2px}
+
+/* ── SCORECARD BIG NUMBER ── */
+.sc-hero{text-align:center;padding:24px 16px;margin-bottom:14px;
+  background:var(--card);border:1px solid var(--bdr);border-radius:16px;box-shadow:var(--shadow2)}
+.sc-month{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--mut);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.sc-big{font-size:2.6rem;font-weight:700;line-height:1;margin-bottom:4px;
+  font-family:'DM Sans',sans-serif}
+.sc-label{font-size:0.78rem;color:var(--tx2);margin-bottom:12px}
+.sc-gap{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:20px;font-size:0.82rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+.sc-gap.over{background:var(--redL);color:var(--red)}
+.sc-gap.under{background:var(--grnL);color:var(--grn)}
+.sc-gap.close{background:var(--goldL);color:var(--gold)}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--bdr);border-radius:10px;
+  padding:12px 14px;box-shadow:var(--shadow)}
+.kpi .k-label{font-size:0.66rem;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;
+  font-family:'JetBrains Mono',monospace}
+.kpi .k-val{font-size:1.15rem;font-weight:600;margin-top:3px}
+.kpi .k-sub{font-size:0.66rem;color:var(--mut);margin-top:2px}
+.kpi-3{grid-template-columns:1fr 1fr 1fr}
+
+/* ── BUCKET CARDS ── */
+.bucket-list{display:flex;flex-direction:column;gap:8px}
+.bk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  background:var(--card);border:1px solid var(--bdr);border-radius:10px;
+  box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
+.bk-row:hover{border-color:var(--acc)}
+.bk-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bk-info{flex:1;min-width:0}
+.bk-name{font-size:0.82rem;font-weight:500}
+.bk-avg{font-size:0.66rem;color:var(--mut)}
+.bk-amt{font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:500;text-align:right}
+.bk-bar-wrap{width:80px;height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+.bk-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+
+/* ── CATEGORY TABLE ── */
+.cat-table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.cat-table th{text-align:left;font-size:0.66rem;color:var(--mut);font-weight:500;
+  padding:6px 8px;border-bottom:2px solid var(--bdr);text-transform:uppercase;letter-spacing:.3px;
+  font-family:'JetBrains Mono',monospace}
+.cat-table th.r{text-align:right}
+.cat-table td{padding:8px;border-bottom:1px solid var(--bdr)}
+.cat-table td.r{text-align:right;font-family:'JetBrains Mono',monospace;font-size:0.78rem}
+.cat-table tr:last-child td{border-bottom:none}
+.cat-table tr[style*="cursor"]:hover td{background:var(--accL)}
+.cat-table .delta-up{color:var(--red);font-size:0.72rem}
+.cat-table .delta-down{color:var(--grn);font-size:0.72rem}
+.cat-table .delta-flat{color:var(--mut);font-size:0.72rem}
+
+/* ── GROUP TABS ── */
+.grp-tabs{display:flex;gap:4px;margin-bottom:14px}
+.grp-tab{padding:6px 14px;border-radius:8px;font-size:0.75rem;font-weight:500;
+  cursor:pointer;border:1px solid var(--bdr);color:var(--tx2);transition:all .15s;
+  -webkit-tap-highlight-color:transparent}
+.grp-tab.active{background:var(--acc);color:white;border-color:var(--acc)}
+
+/* ── HISTORY LIST ── */
+.hist-row{display:flex;align-items:center;gap:12px;padding:14px;
+  background:var(--card);border:1px solid var(--bdr);border-radius:10px;
+  margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
+.hist-row:hover{border-color:var(--acc)}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hist-info{flex:1}
+.hist-month{font-weight:600;font-size:0.88rem}
+.hist-detail{font-size:0.72rem;color:var(--mut)}
+.hist-amt{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:0.95rem}
+
+/* ── SHARE PREVIEW ── */
+.share-preview{background:var(--card2);border:1px solid var(--bdr);border-radius:12px;
+  padding:20px;font-size:0.82rem;line-height:1.65;margin-bottom:16px;white-space:pre-line}
+.share-btn{width:100%;padding:14px;background:var(--acc);color:white;border:none;
+  border-radius:10px;font-size:0.92rem;font-weight:600;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .15s}
+.share-btn:hover{background:var(--acc2)}
+
+/* ── SETTINGS MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,42,58,.3);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:400px;
+  box-shadow:var(--shadow2)}
+.modal h3{font-family:'Source Serif 4',serif;font-size:1.1rem;margin-bottom:16px}
+.modal label{display:block;font-size:0.78rem;color:var(--tx2);margin-bottom:4px;font-weight:500}
+.modal input{width:100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;
+  font-size:0.92rem;font-family:'JetBrains Mono',monospace;margin-bottom:14px;
+  background:var(--bg);color:var(--tx)}
+.modal input:focus{outline:none;border-color:var(--acc)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.modal-btns button{padding:8px 20px;border-radius:8px;font-size:0.82rem;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:500;border:1px solid var(--bdr)}
+.btn-primary{background:var(--acc);color:white;border-color:var(--acc)!important}
+.btn-secondary{background:var(--card);color:var(--tx2)}
+.btn-danger{background:var(--redL);color:var(--red);border-color:var(--red)!important;font-size:0.75rem;padding:6px 12px}
+
+/* ── INSIGHT BOX ── */
+.insight{background:var(--accL);border:1px solid #c5d5f0;border-radius:10px;
+  padding:14px 16px;font-size:0.82rem;line-height:1.6;color:var(--tx);margin-bottom:14px}
+.insight strong{color:var(--acc)}
+
+/* ── CHARTS ── */
+.ch{position:relative}.ch canvas{width:100%!important}
+.h180{height:180px}.h200{height:200px}.h240{height:240px}
+
+/* ── MOVER CARDS ── */
+.mover-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mover{padding:10px 12px;border-radius:8px;font-size:0.78rem}
+.mover.up{background:var(--redL);border:1px solid #f5c5c5}
+.mover.down{background:var(--grnL);border:1px solid #b5dfc8}
+.mover .m-cat{font-weight:500;margin-bottom:2px}
+.mover .m-delta{font-family:'JetBrains Mono',monospace;font-size:0.72rem}
+
+/* ── TRANSACTION DETAIL PANEL ── */
+.txn-panel-overlay{position:fixed;inset:0;background:rgba(30,42,58,.25);z-index:80;
+  display:none;align-items:flex-end;justify-content:center}
+.txn-panel-overlay.open{display:flex}
+.txn-panel{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:680px;
+  max-height:75vh;display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(30,42,58,.12);
+  animation:slideUp .2s ease-out}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.txn-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;
+  border-bottom:1px solid var(--bdr);flex-shrink:0}
+.txn-header h3{font-family:'Source Serif 4',serif;font-size:1rem;font-weight:600}
+.txn-header .txn-total{font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--acc)}
+.txn-close{background:none;border:none;font-size:1.4rem;color:var(--mut);cursor:pointer;
+  padding:4px 8px;line-height:1;border-radius:6px}
+.txn-close:hover{color:var(--tx);background:var(--card2)}
+.txn-list{overflow-y:auto;padding:8px 20px 20px;flex:1;-webkit-overflow-scrolling:touch}
+.txn-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;
+  border-bottom:1px solid var(--bdr);font-size:0.82rem}
+.txn-item:last-child{border-bottom:none}
+.txn-left{flex:1;min-width:0}
+.txn-payee{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-meta{font-size:0.7rem;color:var(--mut);margin-top:2px}
+.txn-notes{font-size:0.72rem;color:var(--tx2);margin-top:3px;font-style:italic;line-height:1.3}
+.txn-amt{font-family:'JetBrains Mono',monospace;font-weight:500;flex-shrink:0;margin-left:12px}
+.txn-empty{text-align:center;padding:24px;color:var(--mut);font-size:0.82rem}
+
+/* ── MONTH SELECTOR STRIP ── */
+.month-strip{
+  background:var(--card);border-bottom:1px solid var(--bdr);
+  padding:10px 20px;display:flex;gap:6px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.month-strip::-webkit-scrollbar{display:none}
+.mo-pill{
+  padding:7px 14px;border-radius:8px;font-size:0.75rem;font-weight:500;
+  white-space:nowrap;cursor:pointer;border:1px solid var(--bdr);
+  color:var(--tx2);background:var(--bg);transition:all .15s;
+  font-family:'JetBrains Mono',monospace;
+  -webkit-tap-highlight-color:transparent;flex-shrink:0;
+}
+.mo-pill.active{background:var(--acc);color:white;border-color:var(--acc)}
+.mo-pill:hover:not(.active){border-color:var(--acc);color:var(--acc)}
+.mo-pill .mo-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
+
+/* ── TREND CARDS ── */
+.trend-period{display:flex;gap:6px;margin-bottom:14px}
+.period-btn{padding:7px 16px;border-radius:8px;font-size:0.78rem;font-weight:500;
+  cursor:pointer;border:1px solid var(--bdr);color:var(--tx2);background:var(--card);
+  transition:all .15s;font-family:'DM Sans',sans-serif}
+.period-btn.active{background:var(--acc);color:white;border-color:var(--acc)}
+.trend-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:500px){.trend-row{grid-template-columns:1fr}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:380px){
+  .page{padding:12px 14px 20px}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .kpi-3{grid-template-columns:1fr 1fr 1fr}
+  .sc-big{font-size:2.2rem}
+  .mover-grid{grid-template-columns:1fr}
+}
+@media(min-width:700px){
+  .page{padding:20px 32px 32px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <h1>Spend<span>Check</span></h1>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+      Settings
+    </button>
+    <label class="hdr-btn" for="csv-input">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      Upload CSV
+      <input type="file" id="csv-input" accept=".csv" style="display:none">
+    </label>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS MODAL ═══ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h3>Settings</h3>
+    <label>Monthly Regular Spending Target</label>
+    <input type="text" id="set-target" placeholder="14000">
+    <label>Annual Irregular Expense Reserve</label>
+    <input type="text" id="set-reserve" placeholder="15000">
+    <div style="font-size:0.72rem;color:var(--mut);margin:-8px 0 14px">
+      That's <span id="set-reserve-mo">$1,250</span>/month set aside for one-time items
+    </div>
+    <label>Year start month (for irregular tracking)</label>
+    <input type="text" id="set-year-start" placeholder="2025-07" style="margin-bottom:6px">
+    <div style="font-size:0.72rem;color:var(--mut);margin-bottom:14px">Format: YYYY-MM</div>
+    <div class="modal-btns">
+      <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
+      <div style="flex:1"></div>
+      <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ UPLOAD SCREEN ═══ -->
+<div id="upload-screen" class="upload-screen" style="">
+  <h2>Welcome to SpendCheck</h2>
+  <p>Upload your Simplifi CSV export to see how the month went — and whether you're on track.</p>
+  <div class="drop-zone" id="drop-zone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M12 9v6m-3-3h6"></path></svg>
+    <div class="dz-label">Tap to upload or drop a CSV</div>
+    <div class="dz-sub">Simplifi transaction export</div>
+  </div>
+  <div id="hist-quick" style="margin-top:24px"></div>
+</div>
+
+<!-- ═══ TRANSACTION DETAIL PANEL ═══ -->
+<div class="txn-panel-overlay" id="txn-overlay" onclick="closeTxnPanel(event)">
+  <div class="txn-panel" onclick="event.stopPropagation()">
+    <div class="txn-header">
+      <div>
+        <h3 id="txn-title">—</h3>
+        <div class="txn-total" id="txn-total"></div>
+      </div>
+      <button class="txn-close" onclick="closeTxnPanel()">×</button>
+    </div>
+    <div class="txn-list" id="txn-list"></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP (hidden until CSV loaded) ═══ -->
+<div id="app" style="display: none; flex: 1 1 0%; flex-direction: column;">
+
+  <!-- MONTH SELECTOR STRIP -->
+  <div class="month-strip" id="month-strip" style="display: none;"></div>
+
+  <!-- TAB: SCORECARD -->
+  <div class="tab-content active" id="tab-scorecard">
+    <div class="page" id="sc-page"></div>
+  </div>
+
+  <!-- TAB: BUCKETS -->
+  <div class="tab-content" id="tab-buckets">
+    <div class="page" id="bk-page"></div>
+  </div>
+
+  <!-- TAB: CATEGORIES -->
+  <div class="tab-content" id="tab-categories">
+    <div class="page" id="cat-page"></div>
+  </div>
+
+  <!-- TAB: TAGS -->
+  <div class="tab-content" id="tab-tags">
+    <div class="page" id="tags-page"></div>
+  </div>
+
+  <!-- TAB: TRENDS -->
+  <div class="tab-content" id="tab-trends">
+    <div class="page" id="trends-page"></div>
+  </div>
+
+  <!-- TAB: HISTORY -->
+  <div class="tab-content" id="tab-history">
+    <div class="page" id="hist-page"></div>
+  </div>
+
+  <!-- TAB: SHARE -->
+  <div class="tab-content" id="tab-share">
+    <div class="page" id="share-page"></div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM TAB BAR ═══ -->
+<div class="tab-bar" id="main-tabs" style="display: none;">
+  <button class="tab-btn active" data-tab="scorecard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+    Score
+  </button>
+  <button class="tab-btn" data-tab="buckets">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+    Buckets
+  </button>
+  <button class="tab-btn" data-tab="categories">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+    Detail
+  </button>
+  <button class="tab-btn" data-tab="tags">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+    Tags
+  </button>
+  <button class="tab-btn" data-tab="trends">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+    Trends
+  </button>
+  <button class="tab-btn" data-tab="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    History
+  </button>
+  <button class="tab-btn" data-tab="share">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+    Share
+  </button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+// ═══════════════════ SETTINGS & STATE ═══════════════════
+const DEFAULTS = {target:14000, reserve:15000, yearStart:'2025-07'};
+let SETTINGS = {...DEFAULTS};
+let CURRENT = null; // currently loaded month data
+let HISTORY = {};   // saved months
+let CHARTS = {};
+
+function loadSettings(){
+  try{const s=localStorage.getItem('sc_settings');if(s)SETTINGS={...DEFAULTS,...JSON.parse(s)}}catch(e){}
+}
+function persistSettings(){localStorage.setItem('sc_settings',JSON.stringify(SETTINGS))}
+function loadHistory(){
+  try{const h=localStorage.getItem('sc_history');if(h)HISTORY=JSON.parse(h)}catch(e){}
+}
+function persistHistory(){localStorage.setItem('sc_history',JSON.stringify(HISTORY))}
+
+function openSettings(){
+  $('set-target').value=SETTINGS.target;
+  $('set-reserve').value=SETTINGS.reserve;
+  $('set-year-start').value=SETTINGS.yearStart;
+  updateReserveMo();
+  $('settings-modal').classList.add('open');
+}
+function closeSettings(){$('settings-modal').classList.remove('open')}
+function saveSettings(){
+  SETTINGS.target=parseInt($('set-target').value)||14000;
+  SETTINGS.reserve=parseInt($('set-reserve').value)||15000;
+  SETTINGS.yearStart=$('set-year-start').value||'2025-07';
+  persistSettings();closeSettings();
+  if(CURRENT)renderAll();
+}
+function clearAllData(){
+  if(confirm('Delete all saved months and settings? This cannot be undone.')){
+    localStorage.removeItem('sc_history');localStorage.removeItem('sc_settings');
+    HISTORY={};SETTINGS={...DEFAULTS};persistSettings();
+    location.reload();
+  }
+}
+$('set-reserve').addEventListener('input',updateReserveMo);
+function updateReserveMo(){
+  const v=parseInt($('set-reserve').value)||15000;
+  $('set-reserve-mo').textContent='$'+(v/12).toLocaleString(undefined,{maximumFractionDigits:0});
+}
+
+// ═══════════════════ HELPERS ═══════════════════
+const $f=v=>'$'+Math.round(Math.abs(v)).toLocaleString();
+const $fs=v=>(v>=0?'+':'-')+'$'+Math.round(Math.abs(v)).toLocaleString();
+const MO_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(ym){
+  const [y,m]=ym.split('-');return MO_NAMES[parseInt(m)-1]+' \''+y.slice(2);
+}
+function parseDate(s){
+  // "Feb 15, 2026" or "2026-02-15"
+  s=s.trim();
+  const m1=s.match(/^(\w+)\s+(\d+),\s+(\d{4})$/);
+  if(m1){
+    const mi=MO_NAMES.indexOf(m1[1].slice(0,3));
+    return mi>=0?new Date(+m1[3],mi,+m1[2]):null;
+  }
+  const d=new Date(s);return isNaN(d)?null:d;
+}
+function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+
+Chart.defaults.color='#8492a6';
+Chart.defaults.borderColor='#e2e6f0';
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=11;
+
+function destroyChart(key){if(CHARTS[key]){CHARTS[key].destroy();delete CHARTS[key]}}
+function makeChart(canvasId,type,data,opts={}){
+  destroyChart(canvasId);
+  const ctx=$(canvasId);if(!ctx)return null;
+  CHARTS[canvasId]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},...opts}});
+  return CHARTS[canvasId];
+}
+
+// ═══════════════════ CSV PARSING ═══════════════════
+function parseCSV(text){
+  const lines=text.split('\n');
+  if(lines.length<2)return[];
+  // Parse header
+  const hdr=parseCSVLine(lines[0]);
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim())continue;
+    const vals=parseCSVLine(lines[i]);
+    if(vals.length<hdr.length-1)continue;
+    const obj={};
+    hdr.forEach((h,j)=>obj[h.trim()]=vals[j]?vals[j].trim():'');
+    rows.push(obj);
+  }
+  return rows;
+}
+function parseCSVLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){
+      if(c==='"'&&line[i+1]==='"'){cur+='"';i++}
+      else if(c==='"')inQ=false;
+      else cur+=c;
+    }else{
+      if(c==='"')inQ=true;
+      else if(c===','){result.push(cur);cur=''}
+      else cur+=c;
+    }
+  }
+  result.push(cur);return result;
+}
+
+function processCSV(rows){
+  const txns=[];
+  for(const r of rows){
+    const date=parseDate(r['Date']||'');
+    if(!date)continue;
+    const amount=parseFloat((r['Amount']||'0').replace(/,/g,''));
+    if(isNaN(amount))continue;
+    const excl=(r['Exclusion']||'').toLowerCase()==='yes';
+    const tags=(r['Tags']||'').split(';').map(t=>t.trim()).filter(Boolean);
+    const cat=(r['Category']||'').trim();
+    const payee=(r['Payee']||'').trim();
+    const acct=(r['Account']||'').trim();
+    const notes=(r['Notes']||'').trim();
+    txns.push({date,month:ym(date),amount,excl,tags,cat,payee,acct,notes});
+  }
+  return txns;
+}
+
+function analyzeMonth(txns,targetMonth){
+  // Filter to target month, separate expenses/income/transfers
+  const mo=txns.filter(t=>t.month===targetMonth);
+  const expenses=mo.filter(t=>!t.excl&&t.amount<0);
+  const income=mo.filter(t=>!t.excl&&t.amount>0);
+
+  // Classify expenses
+  const isOneTime=t=>t.tags.includes('4:One-Time')||t.cat.toLowerCase().includes('onetime');
+  const regular=expenses.filter(t=>!isOneTime(t));
+  const onetime=expenses.filter(t=>isOneTime(t));
+
+  // Tag groups (numbered spending-type tags)
+  const tagGroup=t=>{
+    if(t.tags.includes('6:Fixed'))return 'Fixed';
+    if(t.tags.includes('7:Fixed Variable'))return 'Fixed Variable';
+    if(t.tags.includes('8:Lifestyle and Discretionary'))return 'Lifestyle';
+    return 'Other';
+  };
+
+  // Top-level category group from "A:Name" prefix → returns {key:'A', label:'A:Liability and Property Tax'}
+  const topLevel=cat=>{
+    if(!cat)return{key:'?',label:'Uncategorized'};
+    const m=cat.match(/^([A-Z]):/);
+    if(m){
+      // The top-level label is everything up to the SECOND colon, or the whole first segment
+      const parts=cat.split(':');
+      return{key:m[1],label:parts[0]+':'+parts[1]};
+    }
+    return{key:'?',label:'Uncategorized'};
+  };
+
+  // Buckets
+  const buckets={};
+  const bucketTxns={};
+  for(const t of expenses){
+    for(const tag of t.tags){
+      if(tag.startsWith('Bucket:')){
+        const bk=tag.replace('Bucket:','');
+        buckets[bk]=(buckets[bk]||0)+Math.abs(t.amount);
+        if(!bucketTxns[bk])bucketTxns[bk]=[];
+        bucketTxns[bk].push({date:t.date,payee:t.payee,cat:t.cat,amount:Math.abs(t.amount),notes:t.notes});
+      }
+    }
+  }
+
+  // Spending-type tags (numbered) — for Tag page
+  const typeTags={};
+  const typeTagTxns={};
+  for(const t of expenses){
+    for(const tag of t.tags){
+      if(/^\d+:/.test(tag)){  // tags like 6:Fixed, 7:Fixed Variable, 4:One-Time
+        typeTags[tag]=(typeTags[tag]||0)+Math.abs(t.amount);
+        if(!typeTagTxns[tag])typeTagTxns[tag]=[];
+        typeTagTxns[tag].push({date:t.date,payee:t.payee,cat:t.cat,amount:Math.abs(t.amount),notes:t.notes});
+      }
+    }
+  }
+
+  // Categories
+  const catTotals={};
+  const catTxns={};
+  for(const t of regular){
+    const c=t.cat||'Uncategorized';
+    catTotals[c]=(catTotals[c]||0)+Math.abs(t.amount);
+    if(!catTxns[c])catTxns[c]=[];
+    catTxns[c].push({date:t.date,payee:t.payee,cat:t.cat,amount:Math.abs(t.amount),notes:t.notes});
+  }
+
+  // Map each category to its top-level group (for Detail page filters)
+  const catGroups={};       // category -> top-level key (A, B, C...)
+  const topLabels={};       // key -> full label (A:Liability and Property Tax)
+  for(const t of regular){
+    const c=t.cat||'Uncategorized';
+    const tl=topLevel(c);
+    if(!catGroups[c])catGroups[c]=tl.key;
+    topLabels[tl.key]=tl.label;
+  }
+
+  // Top-level group totals (A, B, C, D, E...)
+  const topGroupTotals={};
+  const topGroupTxns={};
+  for(const t of regular){
+    const tl=topLevel(t.cat);
+    topGroupTotals[tl.key]=(topGroupTotals[tl.key]||0)+Math.abs(t.amount);
+    topLabels[tl.key]=tl.label;
+    if(!topGroupTxns[tl.key])topGroupTxns[tl.key]=[];
+    topGroupTxns[tl.key].push({date:t.date,payee:t.payee,cat:t.cat,amount:Math.abs(t.amount),notes:t.notes});
+  }
+
+  // Tag group totals (spending type — kept for scorecard)
+  const groupTotals={Fixed:0,'Fixed Variable':0,Lifestyle:0,Other:0};
+  for(const t of regular){groupTotals[tagGroup(t)]+=Math.abs(t.amount)}
+
+  // Top payees
+  const payeeTotals={};
+  for(const t of regular){payeeTotals[t.payee]=(payeeTotals[t.payee]||0)+Math.abs(t.amount)}
+
+  const totalReg=regular.reduce((s,t)=>s+Math.abs(t.amount),0);
+  const totalOT=onetime.reduce((s,t)=>s+Math.abs(t.amount),0);
+  const totalIncome=income.reduce((s,t)=>s+t.amount,0);
+  const totalAll=totalReg+totalOT;
+
+  // One-time detail
+  const otDetail=[];
+  for(const t of onetime){otDetail.push({payee:t.payee,cat:t.cat,amount:Math.abs(t.amount),date:t.date})}
+  otDetail.sort((a,b)=>b.amount-a.amount);
+
+  return {
+    month:targetMonth,
+    label:monthLabel(targetMonth),
+    totalReg,totalOT,totalAll,totalIncome,
+    regular,onetime,
+    groupTotals,
+    topGroupTotals,topGroupTxns,topLabels,
+    buckets,bucketTxns,
+    typeTags,typeTagTxns,
+    catTotals,catGroups,catTxns,
+    payeeTotals,
+    otDetail,
+    txnCount:mo.length,
+    expenseCount:expenses.length,
+    _detailAvailable:true
+  };
+}
+
+// ═══════════════════ FILE HANDLING ═══════════════════
+function handleFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=parseCSV(e.target.result);
+    const txns=processCSV(rows);
+    if(txns.length===0){alert('No valid transactions found in this file.');return}
+
+    // Find all months
+    const months=[...new Set(txns.map(t=>t.month))].sort();
+    if(months.length===0){alert('No dated transactions found.');return}
+
+    // Store all txns for cross-month analysis
+    window._allTxns=txns;
+    window._allMonths=months;
+
+    // Analyze and save ALL months
+    for(const m of months){
+      const result=analyzeMonth(txns,m);
+      saveMonth(result);
+    }
+
+    // Load the most recent month as current view
+    const latest=months[months.length-1];
+    CURRENT=analyzeMonth(txns,latest);
+
+    // Show app
+    $('upload-screen').style.display='none';
+    $('app').style.display='flex';
+    $('main-tabs').style.display='flex';
+    renderMonthStrip();
+    renderAll();
+  };
+  reader.readAsText(file);
+}
+
+function saveMonth(data){
+  HISTORY[data.month]={
+    month:data.month,label:data.label,
+    totalReg:data.totalReg,totalOT:data.totalOT,totalAll:data.totalAll,
+    totalIncome:data.totalIncome,
+    groupTotals:data.groupTotals,
+    topGroupTotals:data.topGroupTotals,
+    topLabels:data.topLabels,
+    buckets:data.buckets,
+    typeTags:data.typeTags,
+    catTotals:data.catTotals,
+    catGroups:data.catGroups,
+    otDetail:data.otDetail.map(d=>({payee:d.payee,cat:d.cat,amount:d.amount}))
+  };
+  persistHistory();
+}
+
+// ═══════════════════ AVERAGES FROM HISTORY ═══════════════════
+function getHistoryAverages(){
+  const months=Object.keys(HISTORY).sort();
+  if(months.length===0)return{catAvg:{},bucketAvg:{},regAvg:0,otAvg:0,incAvg:0,groupAvg:{}};
+  const n=months.length;
+  const catSums={};const bucketSums={};const groupSums={Fixed:0,'Fixed Variable':0,Lifestyle:0,Other:0};
+  let regSum=0,otSum=0,incSum=0;
+  for(const m of months){
+    const h=HISTORY[m];
+    regSum+=h.totalReg;otSum+=h.totalOT;incSum+=h.totalIncome;
+    for(const[c,v]of Object.entries(h.catTotals))catSums[c]=(catSums[c]||0)+v;
+    for(const[b,v]of Object.entries(h.buckets))bucketSums[b]=(bucketSums[b]||0)+v;
+    for(const[g,v]of Object.entries(h.groupTotals))groupSums[g]+=v;
+  }
+  const catAvg={};for(const[c,v]of Object.entries(catSums))catAvg[c]=v/n;
+  const bucketAvg={};for(const[b,v]of Object.entries(bucketSums))bucketAvg[b]=v/n;
+  const groupAvg={};for(const[g,v]of Object.entries(groupSums))groupAvg[g]=v/n;
+  return{catAvg,bucketAvg,regAvg:regSum/n,otAvg:otSum/n,incAvg:incSum/n,groupAvg};
+}
+
+// Cumulative one-time since year start
+function getYTDOneTime(){
+  const months=Object.keys(HISTORY).filter(m=>m>=SETTINGS.yearStart).sort();
+  return months.reduce((s,m)=>s+HISTORY[m].totalOT,0);
+}
+
+// ═══════════════════ MONTH SELECTOR STRIP ═══════════════════
+function renderMonthStrip(){
+  // Use months from CSV if available, otherwise from history
+  const months=window._allMonths||Object.keys(HISTORY).sort();
+  if(months.length<=1){$('month-strip').style.display='none';return}
+  $('month-strip').style.display='flex';
+  const currentM=CURRENT?CURRENT.month:months[months.length-1];
+  const detailM=window._detailMonth;
+  $('month-strip').innerHTML=months.map(m=>{
+    const h=HISTORY[m];const gap=h?(h.totalReg-SETTINGS.target):0;
+    const dotColor=!h?'var(--mut)':gap>500?'var(--red)':gap<-200?'var(--grn)':'var(--gold)';
+    // In a shared file, mark which month has full detail
+    const star=(detailM&&m===detailM)?' ★':'';
+    return `<div class="mo-pill${m===currentM?' active':''}" onclick="selectMonth('${m}')">
+      <span class="mo-dot" style="background:${dotColor}"></span>${monthLabel(m)}${star}</div>`;
+  }).join('');
+  // Scroll active pill into view
+  setTimeout(()=>{
+    const active=$('month-strip').querySelector('.active');
+    if(active)active.scrollIntoView({inline:'center',behavior:'smooth'});
+  },50);
+}
+
+function selectMonth(m){
+  // Does this month have transaction-level detail available?
+  const hasTxns=window._allTxns&&window._allTxns.some(t=>t.month===m);
+  if(hasTxns){
+    CURRENT=analyzeMonth(window._allTxns,m);
+    if(!window._detailMonth)saveMonth(CURRENT); // don't overwrite shared summaries
+    CURRENT._detailAvailable=true;
+  }else if(HISTORY[m]){
+    // Reconstruct a display-only CURRENT from the stored summary (no drill-downs)
+    const h=HISTORY[m];
+    CURRENT={...h,regular:[],onetime:[],payeeTotals:{},
+      bucketTxns:{},catTxns:{},typeTagTxns:{},topGroupTxns:{},
+      txnCount:0,expenseCount:0,_detailAvailable:false};
+  }
+  renderMonthStrip();
+  renderAll();
+  window.scrollTo(0,0);
+}
+
+// Banner shown on detail tabs when the current month has no transaction-level detail
+// (happens in a shared file for months other than the one that was shared)
+function detailLockBanner(){
+  if(!CURRENT||CURRENT._detailAvailable!==false)return '';
+  const dm=window._detailMonth?monthLabel(window._detailMonth):'the shared month';
+  return `<div class="insight" style="background:var(--goldL);border-color:#e8d18a">
+    Showing totals only for ${CURRENT.label}. Transaction-level detail was shared only for <strong>${dm}</strong> — tap that month (★) to drill into individual transactions.</div>`;
+}
+
+// ═══════════════════ TRANSACTION DETAIL PANEL ═══════════════════
+function showTxnPanel(title,txns,total){
+  $('txn-title').textContent=title;
+  $('txn-total').textContent=total!==undefined?$f(total):'';
+  if(!txns||txns.length===0){
+    $('txn-list').innerHTML='<div class="txn-empty">No transaction detail available.<br>Upload a CSV with this month\'s data for drill-down.</div>';
+  }else{
+    // Sort by amount descending
+    const sorted=[...txns].sort((a,b)=>b.amount-a.amount);
+    $('txn-list').innerHTML=sorted.map(t=>{
+      const d=t.date?new Date(t.date):null;
+      const ds=d?MO_NAMES[d.getMonth()]+' '+d.getDate():'';
+      const cat=t.cat?(t.cat.split(':').pop().trim()):'';
+      const notes=(t.notes||'').trim();
+      return `<div class="txn-item">
+        <div class="txn-left">
+          <div class="txn-payee">${t.payee||'—'}</div>
+          <div class="txn-meta">${[ds,cat].filter(Boolean).join(' · ')}</div>
+          ${notes?`<div class="txn-notes">${notes}</div>`:''}
+        </div>
+        <div class="txn-amt">${$f(t.amount)}</div>
+      </div>`;
+    }).join('');
+  }
+  $('txn-overlay').classList.add('open');
+}
+function closeTxnPanel(e){
+  if(e&&e.target&&e.target.id!=='txn-overlay')return;
+  $('txn-overlay').classList.remove('open');
+}
+window.showBucketDetail=function(name){
+  if(!CURRENT)return;
+  const txns=CURRENT.bucketTxns?CURRENT.bucketTxns[name]:null;
+  const total=CURRENT.buckets?CURRENT.buckets[name]:0;
+  showTxnPanel(name+' — '+CURRENT.label,txns,total);
+};
+window.showCatDetail=function(cat){
+  if(!CURRENT)return;
+  const txns=CURRENT.catTxns?CURRENT.catTxns[cat]:null;
+  const total=CURRENT.catTotals?CURRENT.catTotals[cat]:0;
+  const shortCat=cat.split(':').pop().trim();
+  showTxnPanel(shortCat+' — '+CURRENT.label,txns,total);
+};
+window.showBucketTagDetail=function(name){
+  if(!CURRENT)return;
+  const txns=CURRENT.bucketTxns?CURRENT.bucketTxns[name]:null;
+  const total=CURRENT.buckets?CURRENT.buckets[name]:0;
+  showTxnPanel(name+' — '+CURRENT.label,txns,total);
+};
+window.showTypeTagDetail=function(tag){
+  if(!CURRENT)return;
+  const txns=CURRENT.typeTagTxns?CURRENT.typeTagTxns[tag]:null;
+  const total=CURRENT.typeTags?CURRENT.typeTags[tag]:0;
+  showTxnPanel(tag+' — '+CURRENT.label,txns,total);
+};
+
+// ═══════════════════ RENDER ALL ═══════════════════
+function renderAll(){
+  if(!CURRENT)return;
+  renderScorecard();
+  renderBuckets();
+  renderCategories();
+  renderTags();
+  renderTrends();
+  renderHistoryTab();
+  renderShare();
+}
+
+// ═══════════════════ TAB 1: SCORECARD ═══════════════════
+function renderScorecard(){
+  const d=CURRENT;const avg=getHistoryAverages();const target=SETTINGS.target;
+  const gap=d.totalReg-target;
+  const gapCls=gap>500?'over':gap<-200?'under':'close';
+  const gapIcon=gap>500?'▲ ':gap<-200?'▼ ':'● ';
+  const ytdOT=getYTDOneTime();
+  const reserveMo=SETTINGS.reserve/12;
+  const monthsSinceStart=Object.keys(HISTORY).filter(m=>m>=SETTINGS.yearStart).length;
+  const reserveUsed=monthsSinceStart>0?ytdOT/(reserveMo*monthsSinceStart)*100:0;
+  const netIncome=d.totalIncome-d.totalAll;
+
+  // Auto-insight — focus on categories that deviated most from THEIR OWN average,
+  // not just the biggest categories (which excludes steady items like healthcare premiums)
+  const haveHistory=Object.keys(HISTORY).length>=2;
+  let insight='';
+
+  // Identify anomalies: categories materially above their own average this month.
+  // A category only counts as a "driver" if it's both notably above its average
+  // (>40% over) and the dollar excess is meaningful (>$200). Steady categories
+  // like premiums have ~0 deviation and won't show up.
+  const anomalies=Object.entries(d.catTotals)
+    .map(([c,v])=>{const a=avg.catAvg[c]||0;return{c,v,a,delta:v-a,pct:a>0?(v-a)/a:0}})
+    .filter(x=>x.a>0&&x.delta>200&&x.pct>0.4)
+    .sort((a,b)=>b.delta-a.delta)
+    .slice(0,3)
+    .map(x=>`${x.c.split(':').pop().trim()} (${$fs(x.delta)} vs usual)`);
+
+  if(gap>500){
+    insight=`Regular spending was ${$f(d.totalReg)} — ${$f(gap)} over the ${$f(target)} target.`;
+    if(haveHistory&&anomalies.length){
+      insight+=` What pushed it up this month: ${anomalies.join(', ')}.`;
+    }else if(haveHistory){
+      insight+=` No single category stands out — spending was broadly a bit higher than usual.`;
+    }
+  }else if(gap<-200){
+    insight=`Great month. Regular spending was ${$f(d.totalReg)} — ${$f(Math.abs(gap))} under the ${$f(target)} target.`;
+    if(haveHistory&&anomalies.length){
+      insight+=` Even with ${anomalies.join(' and ')} running high, you stayed under.`;
+    }
+  }else{
+    insight=`Regular spending was ${$f(d.totalReg)} — essentially on target at ${$f(target)}.`;
+    if(haveHistory&&anomalies.length){
+      insight+=` Above-average this month: ${anomalies.join(', ')}.`;
+    }
+  }
+
+  // One-time items, called out distinctly
+  if(d.totalOT>0){
+    const otTop=d.otDetail.slice(0,2).map(o=>o.payee).join(', ');
+    insight+=` Separately, one-time items added ${$f(d.totalOT)}${otTop?` (${otTop})`:''}, bringing total spending to ${$f(d.totalAll)}.`;
+  }
+
+  if(netIncome>0)insight+=` Income covered everything with ${$f(netIncome)} to spare.`;
+  else if(d.totalIncome>0)insight+=` Income fell short by ${$f(Math.abs(netIncome))} — savings covered the gap.`;
+
+  let h=`
+    <div class="sc-hero">
+      <div class="sc-month">${d.label}</div>
+      <div class="sc-big" style="color:${gapCls==='over'?'var(--red)':gapCls==='under'?'var(--grn)':'var(--gold)'}">${$f(d.totalReg)}</div>
+      <div class="sc-label">regular spending</div>
+      <div class="sc-gap ${gapCls}">${gapIcon}${$f(Math.abs(gap))} ${gap>=0?'over':'under'} ${$f(target)} target</div>
+      ${d.totalOT>0?`
+      <div style="border-top:1px solid var(--bdr);margin:16px 12px 0;padding-top:12px">
+        <div style="display:flex;justify-content:center;gap:8px;align-items:baseline">
+          <span style="font-size:1.4rem;font-weight:600;color:var(--gold)">+ ${$f(d.totalOT)}</span>
+          <span style="font-size:0.78rem;color:var(--tx2)">one-time</span>
+        </div>
+        <div style="font-size:0.78rem;color:var(--tx2);margin-top:6px">${$f(d.totalAll)} total spending</div>
+      </div>`:`
+      <div style="border-top:1px solid var(--bdr);margin:16px 12px 0;padding-top:12px">
+        <div style="font-size:0.78rem;color:var(--tx2)">No one-time items this month · ${$f(d.totalAll)} total spending</div>
+      </div>`}
+    </div>
+
+    <div class="insight">${insight}</div>
+
+    <div class="kpi-row kpi-3">
+      <div class="kpi"><div class="k-label">Income</div><div class="k-val" style="color:var(--grn)">${$f(d.totalIncome)}</div><div class="k-sub">${d.totalIncome>0?'this month':''}</div></div>
+      <div class="kpi"><div class="k-label">All Spending</div><div class="k-val">${$f(d.totalAll)}</div><div class="k-sub">reg + one-time</div></div>
+      <div class="kpi"><div class="k-label">Net</div><div class="k-val" style="color:${netIncome>=0?'var(--grn)':'var(--red)'}">${$fs(netIncome)}</div><div class="k-sub">${netIncome>=0?'surplus':'shortfall'}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Spending by Type</div>
+      <div class="kpi-row" style="margin-bottom:0">
+        ${['Fixed','Fixed Variable','Lifestyle'].map(g=>{
+          const v=d.groupTotals[g]||0;const a=avg.groupAvg[g]||v;const delta=v-a;
+          const cls=delta>100?'delta-up':delta<-100?'delta-down':'delta-flat';
+          const arrow=delta>100?'▲':delta<-100?'▼':'●';
+          return `<div class="kpi"><div class="k-label">${g}</div><div class="k-val">${$f(v)}</div>
+            <div class="k-sub ${cls}">${arrow} ${$f(Math.abs(delta))} vs avg</div></div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Income vs. Expenses</div>
+      <div class="ch h180"><canvas id="sc-income-chart"></canvas></div>
+    </div>
+
+    ${d.totalOT>0?`
+    <div class="card">
+      <div class="card-title">One-Time Items This Month</div>
+      ${d.otDetail.map(o=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:0.82rem">
+        <span>${o.payee}</span><span style="font-family:'JetBrains Mono',monospace">${$f(o.amount)}</span></div>`).join('')}
+      <div style="margin-top:10px;padding:8px 12px;background:var(--goldL);border-radius:8px;font-size:0.78rem;color:var(--gold)">
+        Year-to-date irregular total: <strong>${$f(ytdOT)}</strong> of ${$f(SETTINGS.reserve)} annual reserve
+        (${Math.round(ytdOT/SETTINGS.reserve*100)}% used)
+      </div>
+    </div>`:''}
+
+    ${d.totalOT===0&&ytdOT>0?`
+    <div class="card">
+      <div class="card-title">Irregular Expense Reserve</div>
+      <div style="padding:8px 12px;background:var(--grnL);border-radius:8px;font-size:0.78rem;color:var(--grn)">
+        No one-time items this month. Year-to-date irregular total: <strong>${$f(ytdOT)}</strong> of ${$f(SETTINGS.reserve)} reserve.
+      </div>
+    </div>`:''}
+
+    <div class="card">
+      <div class="card-title">Top Movers vs. Average</div>
+      <div class="mover-grid" id="sc-movers"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Top Payees (this month)</div>
+      <table class="cat-table"><tbody id="sc-payees"></tbody></table>
+    </div>
+  `;
+  $('sc-page').innerHTML=h;
+
+  // Income chart
+  const incBar=[d.totalIncome];const regBar=[d.totalReg];const otBar=[d.totalOT];
+  makeChart('sc-income-chart','bar',{
+    labels:[d.label],
+    datasets:[
+      {label:'Income',data:incBar,backgroundColor:'#1a8a5a44',borderColor:'#1a8a5a',borderWidth:2,borderRadius:4,barPercentage:.25},
+      {label:'Regular',data:regBar,backgroundColor:'#3b6fc244',borderColor:'#3b6fc2',borderWidth:2,borderRadius:4,barPercentage:.25},
+      {label:'One-Time',data:otBar,backgroundColor:'#c68a1744',borderColor:'#c68a17',borderWidth:2,borderRadius:4,barPercentage:.25}
+    ]
+  },{
+    indexAxis:'y',
+    scales:{y:{grid:{display:false}},x:{ticks:{callback:v=>'$'+v.toLocaleString()}}},
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+$f(c.raw)}}}
+  });
+
+  // Movers
+  const movers=Object.entries(d.catTotals)
+    .map(([c,v])=>({c,v,avg:avg.catAvg[c]||0,delta:v-(avg.catAvg[c]||0)}))
+    .filter(m=>Math.abs(m.delta)>30&&m.avg>0)
+    .sort((a,b)=>b.delta-a.delta);
+  const topUp=movers.filter(m=>m.delta>0).slice(0,4);
+  const topDown=movers.filter(m=>m.delta<0).slice(0,4);
+  $('sc-movers').innerHTML=[...topUp,...topDown].map(m=>{
+    const cls=m.delta>0?'up':'down';const arrow=m.delta>0?'▲':'▼';
+    const shortCat=m.c.split(':').pop().trim();
+    return `<div class="mover ${cls}"><div class="m-cat">${shortCat}</div>
+      <div class="m-delta">${$f(m.v)} (${arrow}${$f(Math.abs(m.delta))} vs ${$f(m.avg)} avg)</div></div>`;
+  }).join('')||'<div style="color:var(--mut);font-size:0.82rem">Need 2+ months of history for comparisons</div>';
+
+  // Top 20 payees
+  const payees=Object.entries(d.payeeTotals||{}).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const payeeEl=$('sc-payees');
+  if(payeeEl){
+    payeeEl.innerHTML=payees.length?payees.map(([p,v])=>
+      `<tr><td>${p}</td><td class="r">${$f(v)}</td></tr>`).join('')
+      :'<tr><td style="color:var(--mut)">No payee data this month</td></tr>';
+  }
+}
+
+// ═══════════════════ TAB 2: BUCKETS ═══════════════════
+function renderBuckets(){
+  const d=CURRENT;const avg=getHistoryAverages();
+  const BK_COLORS=['#3b6fc2','#1a8a5a','#c68a17','#9b5fc2','#d06c3e','#c23b6f','#d03e3e','#3bab8a','#5f8ac2','#7aab3b'];
+  const sorted=Object.entries(d.buckets).sort((a,b)=>b[1]-a[1]);
+  const maxBk=sorted.length?sorted[0][1]:1;
+
+  let h=`${detailLockBanner()}<div class="card"><div class="card-title">Bucket Spending — ${d.label}</div><div class="bucket-list">`;
+  sorted.forEach(([name,val],i)=>{
+    const a=avg.bucketAvg[name]||val;const delta=val-a;
+    const cls=delta>50?'delta-up':delta<-50?'delta-down':'delta-flat';
+    const arrow=delta>50?'▲ ':delta<-50?'▼ ':'';
+    const color=BK_COLORS[i%BK_COLORS.length];
+    const esc=name.replace(/'/g,"\\'");
+    h+=`<div class="bk-row" onclick="showBucketDetail('${esc}')">
+      <div class="bk-dot" style="background:${color}"></div>
+      <div class="bk-info"><div class="bk-name">${name}</div>
+        <div class="bk-avg ${cls}">${arrow}avg ${$f(a)}/mo</div></div>
+      <div class="bk-amt">${$f(val)}</div>
+      <div class="bk-bar-wrap"><div class="bk-bar-fill" style="width:${(val/maxBk*100).toFixed(0)}%;background:${color}"></div></div>
+    </div>`;
+  });
+  h+=`</div></div>`;
+
+  // Bucket donut
+  h+=`<div class="card"><div class="card-title">Bucket Mix</div><div class="ch h200"><canvas id="bk-donut"></canvas></div></div>`;
+
+  $('bk-page').innerHTML=h;
+
+  if(sorted.length>0){
+    makeChart('bk-donut','doughnut',{
+      labels:sorted.map(([n])=>n),
+      datasets:[{data:sorted.map(([,v])=>v),backgroundColor:sorted.map((_,i)=>BK_COLORS[i%BK_COLORS.length]),borderWidth:0}]
+    },{cutout:'58%',plugins:{tooltip:{callbacks:{label:c=>c.label+': '+$f(c.raw)}}}});
+  }
+}
+
+// ═══════════════════ TAB 3: CATEGORIES (DETAIL) ═══════════════════
+function renderCategories(){
+  const d=CURRENT;const avg=getHistoryAverages();
+  // Build filter list from actual top-level groups present, sorted by key (A,B,C...)
+  const topLabels=d.topLabels||{};
+  const groupKeys=Object.keys(d.topGroupTotals||{}).sort();
+  if(groupKeys.length===0){
+    $('cat-page').innerHTML=`<div class="card" style="text-align:center;padding:30px"><div style="color:var(--mut)">No category data for this month.</div></div>`;
+    return;
+  }
+  let activeGroup=groupKeys[0];
+
+  function renderGroup(key){
+    const cats=Object.entries(d.catTotals)
+      .filter(([c])=>(d.catGroups[c]||'?')===key)
+      .sort((a,b)=>b[1]-a[1]);
+    const total=cats.reduce((s,[,v])=>s+v,0);
+    const label=topLabels[key]||key;
+    let t=`<div class="card"><div class="card-title">${label} — ${$f(total)}</div>`;
+    if(cats.length===0){t+=`<div style="color:var(--mut);font-size:0.82rem">No transactions in this group</div>`}
+    else{
+      t+=`<table class="cat-table"><thead><tr><th>Category</th><th class="r">Amount</th><th class="r">Avg</th><th class="r">Δ</th></tr></thead><tbody>`;
+      cats.forEach(([c,v])=>{
+        const a=avg.catAvg[c]||0;const delta=v-a;
+        const cls=delta>50?'delta-up':delta<-50?'delta-down':'delta-flat';
+        const arrow=delta>50?'▲':delta<-50?'▼':'';
+        const shortCat=c.split(':').pop().trim();
+        const esc=c.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        t+=`<tr style="cursor:pointer" onclick="showCatDetail('${esc}')"><td>${shortCat}</td><td class="r">${$f(v)}</td><td class="r" style="color:var(--mut)">${a>0?$f(a):'—'}</td>
+          <td class="r ${cls}">${a>0?arrow+$f(Math.abs(delta)):'—'}</td></tr>`;
+      });
+      t+=`</tbody></table>`;
+    }
+    t+=`</div>`;
+    return t;
+  }
+
+  // Filter buttons show the letter key; full label appears as the card title
+  let h=`${detailLockBanner()}<div class="grp-tabs" id="cat-grp-tabs" style="flex-wrap:wrap">`;
+  groupKeys.forEach(k=>{
+    const shortLabel=(topLabels[k]||k).replace(/^[A-Z]:/,'').trim()||k;
+    h+=`<div class="grp-tab${k===activeGroup?' active':''}" data-g="${k}" onclick="switchCatGroup('${k}')" title="${topLabels[k]||k}">${k}: ${shortLabel}</div>`;
+  });
+  h+=`</div><div id="cat-group-content">${renderGroup(activeGroup)}</div>`;
+
+  $('cat-page').innerHTML=h;
+
+  window.switchCatGroup=function(k){
+    activeGroup=k;
+    document.querySelectorAll('#cat-grp-tabs .grp-tab').forEach(t=>t.classList.toggle('active',t.dataset.g===k));
+    $('cat-group-content').innerHTML=renderGroup(k);
+  };
+}
+
+// ═══════════════════ TAB: TAGS ═══════════════════
+function renderTags(){
+  const d=CURRENT;
+  const BK_COLORS=['#3b6fc2','#1a8a5a','#c68a17','#9b5fc2','#d06c3e','#c23b6f','#d03e3e','#3bab8a','#5f8ac2','#7aab3b'];
+
+  // Section 1: Buckets
+  const buckets=Object.entries(d.buckets||{}).sort((a,b)=>b[1]-a[1]);
+  const maxBk=buckets.length?buckets[0][1]:1;
+  let h=`${detailLockBanner()}<div class="card"><div class="card-title">Buckets — ${d.label}</div>`;
+  if(buckets.length===0){
+    h+=`<div style="color:var(--mut);font-size:0.82rem">No bucket tags this month.</div>`;
+  }else{
+    h+=`<div class="bucket-list">`;
+    buckets.forEach(([name,val],i)=>{
+      const color=BK_COLORS[i%BK_COLORS.length];
+      const esc=name.replace(/'/g,"\\'");
+      h+=`<div class="bk-row" onclick="showBucketTagDetail('${esc}')">
+        <div class="bk-dot" style="background:${color}"></div>
+        <div class="bk-info"><div class="bk-name">${name}</div></div>
+        <div class="bk-amt">${$f(val)}</div>
+        <div class="bk-bar-wrap"><div class="bk-bar-fill" style="width:${(val/maxBk*100).toFixed(0)}%;background:${color}"></div></div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+
+  // Section 2: Spending Type (numbered tags)
+  const types=Object.entries(d.typeTags||{}).sort((a,b)=>{
+    // sort by the leading number
+    const na=parseInt(a[0]),nb=parseInt(b[0]);return na-nb;
+  });
+  const maxType=types.length?Math.max(...types.map(t=>t[1])):1;
+  h+=`<div class="card"><div class="card-title">Spending Type</div>`;
+  if(types.length===0){
+    h+=`<div style="color:var(--mut);font-size:0.82rem">No spending-type tags this month.</div>`;
+  }else{
+    h+=`<div class="bucket-list">`;
+    types.forEach(([tag,val],i)=>{
+      const color=BK_COLORS[(i+3)%BK_COLORS.length];
+      const esc=tag.replace(/'/g,"\\'");
+      h+=`<div class="bk-row" onclick="showTypeTagDetail('${esc}')">
+        <div class="bk-dot" style="background:${color}"></div>
+        <div class="bk-info"><div class="bk-name">${tag}</div></div>
+        <div class="bk-amt">${$f(val)}</div>
+        <div class="bk-bar-wrap"><div class="bk-bar-fill" style="width:${(val/maxType*100).toFixed(0)}%;background:${color}"></div></div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+
+  $('tags-page').innerHTML=h;
+}
+
+// ═══════════════════ TAB: TRENDS ═══════════════════
+function renderTrends(){
+  const allMonths=Object.keys(HISTORY).sort();
+  if(allMonths.length<2){
+    const locked=window._lockedMonth;
+    $('trends-page').innerHTML=`<div class="card" style="text-align:center;padding:40px 20px">
+      <div style="font-size:0.92rem;color:var(--tx2)">${locked?'This shared snapshot covers a single month.':'Need at least 2 months of data for trends.'}</div>
+      <div style="font-size:0.78rem;color:var(--mut);margin-top:8px">${locked?'Trends compare multiple months — view the Score, Buckets, Detail, and Tags tabs for the full picture of '+monthLabel(locked)+'.':'Upload a CSV with multiple months or come back after saving more months.'}</div>
+    </div>`;
+    return;
+  }
+
+  let activePeriod=Math.min(allMonths.length,6);
+  window._trendPeriod=activePeriod;
+
+  function buildTrends(n){
+    const months=allMonths.slice(-n);
+    const target=SETTINGS.target;
+    const nMo=months.length;
+
+    // Aggregate data
+    const regVals=months.map(m=>HISTORY[m].totalReg);
+    const otVals=months.map(m=>HISTORY[m].totalOT);
+    const incVals=months.map(m=>HISTORY[m].totalIncome);
+    const allVals=months.map(m=>HISTORY[m].totalAll);
+    const labels=months.map(m=>monthLabel(m));
+
+    const avgReg=regVals.reduce((a,b)=>a+b,0)/nMo;
+    const avgOT=otVals.reduce((a,b)=>a+b,0)/nMo;
+    const avgInc=incVals.reduce((a,b)=>a+b,0)/nMo;
+    const totalOT=otVals.reduce((a,b)=>a+b,0);
+    const totalReg=regVals.reduce((a,b)=>a+b,0);
+    const totalInc=incVals.reduce((a,b)=>a+b,0);
+
+    // Months over/under target
+    const overCount=regVals.filter(v=>v>target+200).length;
+    const underCount=regVals.filter(v=>v<target-200).length;
+    const onCount=nMo-overCount-underCount;
+
+    // Group totals across period
+    const groupSums={Fixed:0,'Fixed Variable':0,Lifestyle:0,Other:0};
+    for(const m of months){
+      const h=HISTORY[m];
+      if(h.groupTotals)for(const[g,v]of Object.entries(h.groupTotals))groupSums[g]+=v;
+    }
+
+    // Bucket totals across period
+    const bucketSums={};
+    for(const m of months){
+      const h=HISTORY[m];
+      if(h.buckets)for(const[b,v]of Object.entries(h.buckets))bucketSums[b]=(bucketSums[b]||0)+v;
+    }
+    const topBuckets=Object.entries(bucketSums).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+    // Best and worst months
+    const bestIdx=regVals.indexOf(Math.min(...regVals));
+    const worstIdx=regVals.indexOf(Math.max(...regVals));
+
+    // Trend direction (last 3 vs first 3)
+    let trendDir='flat';
+    if(nMo>=4){
+      const half=Math.floor(nMo/2);
+      const firstHalfAvg=regVals.slice(0,half).reduce((a,b)=>a+b,0)/half;
+      const secondHalfAvg=regVals.slice(-half).reduce((a,b)=>a+b,0)/half;
+      const pctChange=(secondHalfAvg-firstHalfAvg)/firstHalfAvg*100;
+      trendDir=pctChange>5?'rising':pctChange<-5?'falling':'flat';
+    }
+
+    const gapAvg=avgReg-target;
+    const gapCls=gapAvg>500?'over':gapAvg<-200?'under':'close';
+
+    let h=`
+      <div class="trend-period" id="trend-period-btns">
+        ${allMonths.length>=6?`<div class="period-btn${n===6?' active':''}" onclick="switchTrendPeriod(6)">Last 6 Months</div>`:''}
+        ${allMonths.length>=12?`<div class="period-btn${n===12?' active':''}" onclick="switchTrendPeriod(12)">Last 12 Months</div>`:''}
+        <div class="period-btn${n===allMonths.length?' active':''}" onclick="switchTrendPeriod(${allMonths.length})">All (${allMonths.length})</div>
+      </div>
+
+      <div class="sc-hero" style="padding:18px 16px;margin-bottom:14px">
+        <div class="sc-month">${nMo}-MONTH AVERAGE</div>
+        <div class="sc-big" style="font-size:2rem;color:${gapCls==='over'?'var(--red)':gapCls==='under'?'var(--grn)':'var(--gold)'}">${$f(avgReg)}<span style="font-size:0.9rem;font-weight:400;color:var(--tx2)">/mo</span></div>
+        <div class="sc-label">regular spending</div>
+        <div class="sc-gap ${gapCls}">${gapAvg>=0?'▲':'▼'} ${$f(Math.abs(gapAvg))}/mo ${gapAvg>=0?'over':'under'} ${$f(target)} target</div>
+        <div style="margin-top:10px;font-size:0.78rem;color:var(--tx2)">
+          Trend: <strong style="color:${trendDir==='rising'?'var(--red)':trendDir==='falling'?'var(--grn)':'var(--mut)'}">
+          ${trendDir==='rising'?'↗ Rising':trendDir==='falling'?'↘ Falling':'→ Steady'}</strong>
+        </div>
+      </div>
+
+      <div class="kpi-row kpi-3">
+        <div class="kpi"><div class="k-label">Over Target</div><div class="k-val" style="color:var(--red)">${overCount}</div><div class="k-sub">of ${nMo} months</div></div>
+        <div class="kpi"><div class="k-label">On Target</div><div class="k-val" style="color:var(--gold)">${onCount}</div><div class="k-sub">within $200</div></div>
+        <div class="kpi"><div class="k-label">Under Target</div><div class="k-val" style="color:var(--grn)">${underCount}</div><div class="k-sub">of ${nMo} months</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Regular Spending vs. Target</div>
+        <div class="ch h240"><canvas id="trend-reg-chart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Income vs. Total Spending</div>
+        <div class="ch h200"><canvas id="trend-inc-chart"></canvas></div>
+      </div>
+
+      <div class="trend-row">
+        <div class="kpi"><div class="k-label">Total Regular</div><div class="k-val">${$f(totalReg)}</div><div class="k-sub">${nMo} months</div></div>
+        <div class="kpi"><div class="k-label">Total One-Time</div><div class="k-val" style="color:var(--gold)">${$f(totalOT)}</div><div class="k-sub">${$f(avgOT)}/mo avg</div></div>
+        <div class="kpi"><div class="k-label">Avg Income</div><div class="k-val" style="color:var(--grn)">${$f(avgInc)}</div><div class="k-sub">/month</div></div>
+        <div class="kpi"><div class="k-label">Net (Inc − Spend)</div><div class="k-val" style="color:${totalInc-(totalReg+totalOT)>=0?'var(--grn)':'var(--red)'}">${$fs(totalInc-(totalReg+totalOT))}</div><div class="k-sub">${nMo}-month total</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Spending by Type (${nMo}-month total)</div>
+        <div class="ch h200"><canvas id="trend-group-chart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Category Trend</div>
+        <div style="font-size:0.72rem;color:var(--mut);margin-bottom:8px">Tap any point to see that month's transactions</div>
+        <select id="cat-trend-select" onchange="updateCatTrend()" style="width:100%;padding:9px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:0.82rem;margin-bottom:12px;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif">
+          <option value="__ALL__">All top-level groups</option>
+        </select>
+        <div class="ch h240"><canvas id="trend-cat-chart"></canvas></div>
+      </div>
+    `;
+
+    $('trends-page').innerHTML=h;
+
+    // ── Charts ──
+    const BK_COLORS=['#3b6fc2','#1a8a5a','#c68a17','#9b5fc2','#d06c3e','#c23b6f','#d03e3e','#3bab8a'];
+
+    // Regular vs target line
+    makeChart('trend-reg-chart','line',{
+      labels,
+      datasets:[
+        {label:'Regular Spending',data:regVals,borderColor:'#3b6fc2',borderWidth:2.5,
+          pointRadius:4,pointBackgroundColor:regVals.map(v=>v>target+200?'#d03e3e':v<target-200?'#1a8a5a':'#c68a17'),
+          tension:.3,fill:{target:'origin',above:'#3b6fc222'}},
+        {label:'Target ('+$f(target)+')',data:labels.map(()=>target),borderColor:'#d03e3e',
+          borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}
+      ]
+    },{
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+v.toLocaleString()},suggestedMin:Math.min(...regVals)*0.85}},
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:12}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+$f(c.raw)}}}
+    });
+
+    // Income vs spending
+    makeChart('trend-inc-chart','bar',{
+      labels,
+      datasets:[
+        {label:'Income',data:incVals,backgroundColor:'#1a8a5a44',borderColor:'#1a8a5a',borderWidth:1.5,borderRadius:3,barPercentage:.35},
+        {label:'Total Spending',data:allVals,backgroundColor:'#d03e3e44',borderColor:'#d03e3e',borderWidth:1.5,borderRadius:3,barPercentage:.35}
+      ]
+    },{
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+v.toLocaleString()}}},
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:12}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+$f(c.raw)}}}
+    });
+
+    // Group donut
+    const groupLabels=Object.keys(groupSums).filter(g=>groupSums[g]>0);
+    const groupVals=groupLabels.map(g=>groupSums[g]);
+    const groupColors={'Fixed':'#3b6fc2','Fixed Variable':'#1a8a5a','Lifestyle':'#9b5fc2','Other':'#c68a17'};
+    makeChart('trend-group-chart','doughnut',{
+      labels:groupLabels,
+      datasets:[{data:groupVals,backgroundColor:groupLabels.map(g=>groupColors[g]||'#8492a6'),borderWidth:0}]
+    },{cutout:'55%',plugins:{tooltip:{callbacks:{label:c=>c.label+': '+$f(c.raw)+' ('+$f(c.raw/nMo)+'/mo)'}}}});
+
+    // ── Category trend (top-level by default, drill to individual) ──
+    // Collect top-level group keys + labels across the period
+    const topKeysSet={};const topLabelsAll={};const allCatsSet={};
+    for(const m of months){
+      const h=HISTORY[m];
+      if(h.topGroupTotals)for(const k of Object.keys(h.topGroupTotals))topKeysSet[k]=1;
+      if(h.topLabels)for(const[k,l]of Object.entries(h.topLabels))topLabelsAll[k]=l;
+      if(h.catTotals)for(const c of Object.keys(h.catTotals))allCatsSet[c]=1;
+    }
+    const topKeys=Object.keys(topKeysSet).sort();
+    const allCats=Object.keys(allCatsSet).sort();
+
+    // Populate selector
+    const sel=$('cat-trend-select');
+    if(sel){
+      let opts=`<option value="__ALL__">All top-level groups</option>`;
+      topKeys.forEach(k=>{opts+=`<option value="GRP::${k}">${topLabelsAll[k]||k}</option>`});
+      opts+=`<option disabled>──────────</option>`;
+      allCats.forEach(c=>{const sc=c.split(':').pop().trim();opts+=`<option value="CAT::${c}">${sc}</option>`});
+      sel.innerHTML=opts;
+    }
+
+    // Builder for the category trend chart based on selection
+    window._catTrendData={months,labels,topKeys,topLabelsAll,nMo};
+    window.updateCatTrend=function(){
+      const sel=$('cat-trend-select');if(!sel)return;
+      const val=sel.value;
+      const {months,labels,topKeys,topLabelsAll}=window._catTrendData;
+      const COLORS=['#3b6fc2','#1a8a5a','#c68a17','#9b5fc2','#d06c3e','#c23b6f','#d03e3e','#3bab8a','#5f8ac2','#7aab3b'];
+      let datasets=[];
+
+      if(val==='__ALL__'){
+        // one line per top-level group
+        datasets=topKeys.map((k,i)=>({
+          label:topLabelsAll[k]||k,
+          data:months.map(m=>{const h=HISTORY[m];return h.topGroupTotals&&h.topGroupTotals[k]?h.topGroupTotals[k]:0}),
+          borderColor:COLORS[i%COLORS.length],borderWidth:2,pointRadius:3,pointHoverRadius:6,
+          pointBackgroundColor:COLORS[i%COLORS.length],tension:.3,fill:false,_kind:'GRP',_key:k
+        }));
+      }else if(val.startsWith('GRP::')){
+        const k=val.slice(5);
+        datasets=[{
+          label:topLabelsAll[k]||k,
+          data:months.map(m=>{const h=HISTORY[m];return h.topGroupTotals&&h.topGroupTotals[k]?h.topGroupTotals[k]:0}),
+          borderColor:'#3b6fc2',borderWidth:2.5,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#3b6fc2',
+          tension:.3,fill:{target:'origin',above:'#3b6fc222'},_kind:'GRP',_key:k
+        }];
+      }else if(val.startsWith('CAT::')){
+        const c=val.slice(5);
+        datasets=[{
+          label:c.split(':').pop().trim(),
+          data:months.map(m=>{const h=HISTORY[m];return h.catTotals&&h.catTotals[c]?h.catTotals[c]:0}),
+          borderColor:'#1a8a5a',borderWidth:2.5,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#1a8a5a',
+          tension:.3,fill:{target:'origin',above:'#1a8a5a22'},_kind:'CAT',_key:c
+        }];
+      }
+
+      makeChart('trend-cat-chart','line',{labels,datasets},{
+        onClick:(evt,els,chart)=>{
+          if(!els||els.length===0)return;
+          const el=els[0];
+          const ds=chart.data.datasets[el.datasetIndex];
+          const monthIdx=el.index;
+          const month=window._catTrendData.months[monthIdx];
+          openTrendPointDetail(ds._kind,ds._key,month,ds.label);
+        },
+        onHover:(evt,els)=>{evt.native.target.style.cursor=els.length?'pointer':'default'},
+        scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+v.toLocaleString()},beginAtZero:true}},
+        plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
+          tooltip:{callbacks:{label:c=>c.dataset.label+': '+$f(c.raw)+'  (tap for detail)'}}}
+      });
+    };
+    window.updateCatTrend();
+  }
+
+  window.switchTrendPeriod=function(n){buildTrends(n)};
+  buildTrends(activePeriod);
+}
+
+// Open transaction detail for a clicked point on the category trend chart
+function openTrendPointDetail(kind,key,month,label){
+  // Only the shared detail month has transactions in a shared file
+  const hasTxns=window._allTxns&&window._allTxns.some(t=>t.month===month);
+  if(!hasTxns){
+    $('txn-title').textContent=label+' — '+monthLabel(month);
+    $('txn-total').textContent='';
+    const dm=window._detailMonth?monthLabel(window._detailMonth):'the shared month';
+    $('txn-list').innerHTML=`<div class="txn-empty">Transaction detail for ${monthLabel(month)} wasn't included in this shared file.<br><br>Only <strong>${dm}</strong> includes individual transactions. The chart still shows ${monthLabel(month)}'s total for comparison.</div>`;
+    $('txn-overlay').classList.add('open');
+    return;
+  }
+  const monthData=analyzeMonth(window._allTxns,month);
+  let txns,total;
+  if(kind==='GRP'){
+    txns=monthData.topGroupTxns?monthData.topGroupTxns[key]:null;
+    total=monthData.topGroupTotals?monthData.topGroupTotals[key]:0;
+  }else{
+    txns=monthData.catTxns?monthData.catTxns[key]:null;
+    total=monthData.catTotals?monthData.catTotals[key]:0;
+  }
+  showTxnPanel(label+' — '+monthLabel(month),txns,total);
+}
+
+// ═══════════════════ TAB 4: HISTORY ═══════════════════
+function renderHistoryTab(){
+  const months=Object.keys(HISTORY).sort().reverse();
+  let h='';
+
+  if(months.length>1){
+    // Trend chart
+    const sorted=months.slice().sort();
+    h+=`<div class="card"><div class="card-title">Regular Spending Trend</div>
+      <div class="ch h200"><canvas id="hist-trend"></canvas></div></div>`;
+  }
+
+  h+=`<div style="font-size:0.78rem;color:var(--mut);margin-bottom:10px">${months.length} month${months.length!==1?'s':''} saved</div>`;
+
+  months.forEach(m=>{
+    const d=HISTORY[m];const gap=d.totalReg-SETTINGS.target;
+    const dotColor=gap>500?'var(--red)':gap<-200?'var(--grn)':'var(--gold)';
+    const isCurrent=CURRENT&&CURRENT.month===m;
+    h+=`<div class="hist-row${isCurrent?' style="border-color:var(--acc)"':''}" onclick="loadHistoryMonth('${m}')">
+      <div class="hist-dot" style="background:${dotColor}"></div>
+      <div class="hist-info"><div class="hist-month">${d.label}${isCurrent?' ✦':''}</div>
+        <div class="hist-detail">Income: ${$f(d.totalIncome)} · One-time: ${$f(d.totalOT)}</div></div>
+      <div class="hist-amt" style="color:${gap>500?'var(--red)':gap<-200?'var(--grn)':'var(--tx)'}">${$f(d.totalReg)}</div>
+    </div>`;
+  });
+
+  // YTD irregular reserve tracker
+  const ytdOT=getYTDOneTime();
+  const pct=Math.min(100,Math.round(ytdOT/SETTINGS.reserve*100));
+  h+=`<div class="card" style="margin-top:14px"><div class="card-title">Irregular Expense Reserve (Year-to-Date)</div>
+    <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px">
+      <span>Used: ${$f(ytdOT)}</span><span>Budget: ${$f(SETTINGS.reserve)}</span></div>
+    <div style="height:10px;background:var(--card2);border-radius:5px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;border-radius:5px;background:${pct>100?'var(--red)':pct>75?'var(--gold)':'var(--grn)'};transition:width .4s"></div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--mut);margin-top:4px;text-align:right">${pct}% of annual reserve</div>
+  </div>`;
+
+  $('hist-page').innerHTML=h;
+
+  // Trend chart
+  if(months.length>1){
+    const sorted=months.slice().sort();
+    makeChart('hist-trend','line',{
+      labels:sorted.map(m=>monthLabel(m)),
+      datasets:[
+        {label:'Regular',data:sorted.map(m=>HISTORY[m].totalReg),borderColor:'#3b6fc2',borderWidth:2.5,
+          pointRadius:4,pointBackgroundColor:'#3b6fc2',tension:.3,fill:false},
+        {label:'Target',data:sorted.map(()=>SETTINGS.target),borderColor:'#d03e3e',borderWidth:1.5,
+          borderDash:[6,4],pointRadius:0,fill:false}
+      ]
+    },{
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+v.toLocaleString()},suggestedMin:10000}},
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:12}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+$f(c.raw)}}}
+    });
+  }
+}
+
+window.loadHistoryMonth=function(m){
+  if(window._allTxns){
+    CURRENT=analyzeMonth(window._allTxns,m);
+  }else{
+    const h=HISTORY[m];
+    CURRENT={...h,regular:[],onetime:[],payeeTotals:{},txnCount:0,expenseCount:0};
+  }
+  // Switch to scorecard
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab==='scorecard'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.toggle('active',t.id==='tab-scorecard'));
+  renderMonthStrip();
+  renderAll();
+  window.scrollTo(0,0);
+};
+
+// ═══════════════════ TAB 5: SHARE ═══════════════════
+function renderShare(){
+  const d=CURRENT;const avg=getHistoryAverages();const target=SETTINGS.target;
+  const gap=d.totalReg-target;const netIncome=d.totalIncome-d.totalAll;const ytdOT=getYTDOneTime();
+
+  // Build summary text
+  let summary=`SpendCheck — ${d.label}\n`;
+  summary+=`═══════════════════════════════\n\n`;
+  summary+=`Regular spending: ${$f(d.totalReg)}`;
+  summary+=gap>0?` (${$f(gap)} over ${$f(target)} target)\n`:` (${$f(Math.abs(gap))} under ${$f(target)} target)\n`;
+  summary+=`One-time items: ${$f(d.totalOT)}\n`;
+  summary+=`Total spending: ${$f(d.totalAll)}\n`;
+  summary+=`Income: ${$f(d.totalIncome)}\n`;
+  summary+=`Net: ${$fs(netIncome)}\n\n`;
+
+  summary+=`By Type:\n`;
+  ['Fixed','Fixed Variable','Lifestyle'].forEach(g=>{
+    const v=d.groupTotals[g]||0;
+    summary+=`  ${g}: ${$f(v)}\n`;
+  });
+  summary+=`\n`;
+
+  if(Object.keys(d.buckets).length>0){
+    summary+=`By Bucket:\n`;
+    Object.entries(d.buckets).sort((a,b)=>b[1]-a[1]).forEach(([n,v])=>{
+      summary+=`  ${n}: ${$f(v)}\n`;
+    });
+    summary+=`\n`;
+  }
+
+  if(d.otDetail.length>0){
+    summary+=`One-Time Detail:\n`;
+    d.otDetail.forEach(o=>{summary+=`  ${o.payee}: ${$f(o.amount)}\n`});
+    summary+=`\nIrregular reserve YTD: ${$f(ytdOT)} of ${$f(SETTINGS.reserve)} (${Math.round(ytdOT/SETTINGS.reserve*100)}%)\n\n`;
+  }
+
+  summary+=`Bottom line: `;
+  if(gap>500)summary+=`We're ${$f(gap)} over the monthly target. `;
+  else if(gap<-200)summary+=`Good month — ${$f(Math.abs(gap))} under target. `;
+  else summary+=`Right on target. `;
+  if(netIncome>=0)summary+=`Income covered everything with ${$f(netIncome)} to spare.`;
+  else summary+=`We drew ${$f(Math.abs(netIncome))} from savings to cover the gap.`;
+
+  $('share-page').innerHTML=`
+    <div class="card"><div class="card-title">Share with Kathy — ${d.label}</div>
+      <p style="font-size:0.82rem;color:var(--tx2);margin-bottom:14px">
+        The reliable way: publish Kathy's view as a normal web page on your GitHub.
+        She gets the full app at a clean link, opened on ${d.label}, with all months'
+        trends and detail for ${d.label}. No files to send.
+      </p>
+      <ol style="font-size:0.8rem;color:var(--tx2);line-height:1.8;margin:0 0 14px 18px;padding:0">
+        <li>Tap <strong>Copy Data</strong> below</li>
+        <li>In GitHub, open your <code>spendcheck</code> repo → Add file → Create new file</li>
+        <li>Name it exactly <code>spendcheck-data.js</code></li>
+        <li>Paste, then Commit</li>
+        <li>Text Kathy: <strong>endresults67.github.io/spendcheck/share.html</strong></li>
+      </ol>
+      <button class="share-btn" onclick="copyDataContent()">Copy Data</button>
+      <div id="data-copy-status" style="font-size:0.72rem;color:var(--grn);text-align:center;margin-top:8px"></div>
+      <div id="data-content-box" style="display:none;margin-top:10px">
+        <div style="font-size:0.7rem;color:var(--mut);margin-bottom:4px">If the copy didn't work, select all of this and copy manually:</div>
+        <textarea id="data-content-text" readonly style="width:100%;height:80px;font-size:0.62rem;
+          font-family:'JetBrains Mono',monospace;border:1px solid var(--bdr);border-radius:8px;
+          padding:8px;background:var(--bg);color:var(--tx2);resize:vertical" onclick="this.select()"></textarea>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-title">One-time setup: create share.html</div>
+      <p style="font-size:0.78rem;color:var(--tx2);margin-bottom:12px">
+        Do this once. Tap <strong>Copy share.html</strong>, then in GitHub create a new file
+        named <code>share.html</code> in your repo and paste. After that, you only update
+        the data file each month.
+      </p>
+      <button class="hdr-btn" style="width:100%;justify-content:center;padding:12px" onclick="copyShareHtmlContent()">Copy share.html</button>
+      <div id="sharehtml-copy-status" style="font-size:0.72rem;color:var(--grn);text-align:center;margin-top:8px"></div>
+      <div id="sharehtml-content-box" style="display:none;margin-top:10px">
+        <div style="font-size:0.7rem;color:var(--mut);margin-bottom:4px">If the copy didn't work, select all of this and copy manually:</div>
+        <textarea id="sharehtml-content-text" readonly style="width:100%;height:80px;font-size:0.62rem;
+          font-family:'JetBrains Mono',monospace;border:1px solid var(--bdr);border-radius:8px;
+          padding:8px;background:var(--bg);color:var(--tx2);resize:vertical" onclick="this.select()"></textarea>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-title">Text Summary (tap to copy)</div>
+      <div class="share-preview" id="share-text" onclick="copyShareText()" style="cursor:pointer">${summary}</div>
+      <div style="font-size:0.72rem;color:var(--mut);text-align:center">Tap to copy to clipboard</div>
+    </div>
+  `;
+}
+
+window.buildSharePayloadB64=function(){
+  const shareMonth=CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1];
+  const monthTxns=window._allTxns.filter(t=>t.month===shareMonth);
+  const txnsForShare=monthTxns.map(t=>({
+    date:t.date instanceof Date?t.date.toISOString():t.date,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags,
+    cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
+  }));
+  const historyForShare={};
+  for(const m of Object.keys(HISTORY)){
+    const h=JSON.parse(JSON.stringify(HISTORY[m]));
+    if(m!==shareMonth) h.otDetail=[];
+    historyForShare[m]=h;
+  }
+  const payload={
+    txns:txnsForShare,detailMonth:shareMonth,allMonths:window._allMonths.slice(),
+    history:historyForShare,settings:SETTINGS,currentMonth:shareMonth,generated:new Date().toISOString()
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+};
+
+function copyToClipboard(text,statusEl,fallbackBox,fallbackText){
+  function showFallback(){
+    if(fallbackBox)fallbackBox.style.display='block';
+    if(fallbackText){fallbackText.value=text;}
+    if(statusEl)statusEl.textContent='Couldn\'t auto-copy — select the text below and copy manually';
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      if(statusEl)statusEl.textContent='✓ Copied! Now paste it into GitHub';
+    }).catch(showFallback);
+  }else{
+    showFallback();
+  }
+}
+
+window.copyDataContent=function(){
+  if(!window._allTxns||!window._allMonths){alert('Please upload a CSV first.');return;}
+  const b64=buildSharePayloadB64();
+  const content='window.__SHARED_PAYLOAD_B64__="'+b64+'";';
+  copyToClipboard(content,$('data-copy-status'),$('data-content-box'),$('data-content-text'));
+};
+
+window.copyShareHtmlContent=function(){
+  const docClone=document.documentElement.cloneNode(true);
+  ['sc-page','bk-page','cat-page','tags-page','trends-page','hist-page','share-page','month-strip','hist-quick'].forEach(function(id){
+    var el=docClone.querySelector('#'+id);if(el)el.innerHTML='';
+  });
+  var up=docClone.querySelector('#upload-screen');if(up)up.style.display='';
+  var ap=docClone.querySelector('#app');if(ap)ap.style.display='none';
+  var tb=docClone.querySelector('#main-tabs');if(tb)tb.style.display='none';
+  var ms=docClone.querySelector('#month-strip');if(ms)ms.style.display='none';
+  docClone.querySelectorAll('.tab-content').forEach(function(t){t.classList.toggle('active',t.id==='tab-scorecard');});
+  docClone.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab==='scorecard');});
+  var oldData=docClone.querySelector('#__shared_data__');if(oldData)oldData.remove();
+  var head=docClone.querySelector('head');
+  var dataInclude=docClone.ownerDocument.createElement('script');
+  dataInclude.src='spendcheck-data.js';
+  head.insertBefore(dataInclude,head.firstChild);
+  var shareHtml='<!DOCTYPE html>\n'+docClone.outerHTML;
+  copyToClipboard(shareHtml,$('sharehtml-copy-status'),$('sharehtml-content-box'),$('sharehtml-content-text'));
+};
+
+window.copyShareText=function(){
+  const text=$('share-text').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    $('share-text').style.background='var(--grnL)';
+    setTimeout(()=>$('share-text').style.background='',800);
+  }).catch(()=>{});
+};
+
+window.generateShareFile=function(){
+  if(!window._allTxns||!window._allMonths){
+    alert('Please upload a CSV first so there is data to share.');
+    return;
+  }
+
+  const shareMonth=CURRENT?CURRENT.month:window._allMonths[window._allMonths.length-1];
+
+  // Full transactions for the shared month ONLY (enables drill-downs for that month)
+  const monthTxns=window._allTxns.filter(t=>t.month===shareMonth);
+  const txnsForShare=monthTxns.map(t=>({
+    date:t.date instanceof Date?t.date.toISOString():t.date,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags,
+    cat:t.cat,payee:t.payee,acct:t.acct,notes:t.notes
+  }));
+
+  // Summary totals for ALL months (for Trends + History). Strip otDetail names from
+  // non-shared months so no transaction-level detail leaks.
+  const historyForShare={};
+  for(const m of Object.keys(HISTORY)){
+    const h=JSON.parse(JSON.stringify(HISTORY[m]));
+    if(m!==shareMonth) h.otDetail=[];
+    historyForShare[m]=h;
+  }
+
+  const payload={
+    txns:txnsForShare,
+    detailMonth:shareMonth,
+    allMonths:window._allMonths.slice(),
+    history:historyForShare,
+    settings:SETTINGS,
+    currentMonth:shareMonth,
+    generated:new Date().toISOString()
+  };
+
+  // Clone the live document, then RESET all dynamic containers to empty so the
+  // shared file starts from a clean shell (not the owner's rendered state).
+  const docClone=document.documentElement.cloneNode(true);
+
+  // Empty every container the app renders into, and reset visibility to defaults
+  const resetIds=['sc-page','bk-page','cat-page','tags-page','trends-page','hist-page','share-page','month-strip','hist-quick'];
+  resetIds.forEach(id=>{const el=docClone.querySelector('#'+id);if(el)el.innerHTML='';});
+  // Restore the original initial visibility: upload screen shown, app+tabs+strip hidden
+  const up=docClone.querySelector('#upload-screen'); if(up){up.style.display='';}
+  const ap=docClone.querySelector('#app'); if(ap){ap.style.display='none';}
+  const tb=docClone.querySelector('#main-tabs'); if(tb){tb.style.display='none';}
+  const ms=docClone.querySelector('#month-strip'); if(ms){ms.style.display='none';}
+  // Clear any stale active tab states back to the first tab
+  docClone.querySelectorAll('.tab-content').forEach((t,i)=>{t.classList.toggle('active',t.id==='tab-scorecard');});
+  docClone.querySelectorAll('.tab-btn').forEach(b=>{b.classList.toggle('active',b.dataset.tab==='scorecard');});
+  // Remove any previously-injected shared-data script (avoid double payloads)
+  const old=docClone.querySelector('#__shared_data__'); if(old)old.remove();
+
+  // Inject the payload into <head> so it is GUARANTEED defined before the
+  // main app script (which lives at the end of <body>) executes.
+  const head=docClone.querySelector('head');
+  const payloadScript=docClone.ownerDocument.createElement('script');
+  payloadScript.id='__shared_data__';
+  // Encode the payload as base64 so it can NEVER break out of the script tag
+  // (raw JSON can contain tag-closing sequences or U+2028/U+2029 which break parsing)
+  // and so it survives any transfer method (AirDrop, email, Messages) byte-for-byte.
+  const payloadJSON=JSON.stringify(payload);
+  // Encode as UTF-8 safe base64
+  const payloadB64=btoa(unescape(encodeURIComponent(payloadJSON)));
+  payloadScript.textContent='window.__SHARED_PAYLOAD_B64__="'+payloadB64+'";';
+  head.appendChild(payloadScript);
+
+  const shareHTML='<!DOCTYPE html>\n'+docClone.outerHTML;
+
+  const blob=new Blob([shareHTML],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='spendcheck-'+shareMonth+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+
+// ═══════════════════ TAB SWITCHING ═══════════════════
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ═══════════════════ FILE INPUT ═══════════════════
+$('csv-input').addEventListener('change',e=>handleFile(e.target.files[0]));
+const dz=$('drop-zone');
+dz.addEventListener('click',()=>$('csv-input').click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();dz.classList.remove('over');handleFile(e.dataTransfer.files[0])});
+
+// ═══════════════════ PREVENT DEFAULT FILE DROP ═══════════════════
+// Without this, dropping a file outside the zone causes the browser to open it
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>e.preventDefault());
+
+// ═══════════════════ INIT ═══════════════════
+loadSettings();
+loadHistory();
+
+// ── If this is a SHARED file with embedded data, load it automatically ──
+function b64FromUrlSafe(s){
+  // Restore standard base64 from URL-safe variant
+  s=s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4)s+='=';
+  return s;
+}
+function getSharedPayload(){
+  // Preferred for links: payload in the URL hash (#data=...). Opens in real Safari.
+  try{
+    const h=window.location.hash||'';
+    const m=h.match(/[#&]data=([^&]+)/);
+    if(m&&m[1]){
+      let raw=m[1];
+      // Undo any URL-encoding a messenger may have applied
+      try{raw=decodeURIComponent(raw);}catch(e){}
+      const b64=b64FromUrlSafe(raw);
+      const json=decodeURIComponent(escape(atob(b64)));
+      return JSON.parse(json);
+    }
+  }catch(e){window._bootError='hash:'+e.message;}
+  // Base64-encoded payload embedded in the file (for downloaded share files)
+  if(window.__SHARED_PAYLOAD_B64__){
+    try{
+      const json=decodeURIComponent(escape(atob(window.__SHARED_PAYLOAD_B64__)));
+      return JSON.parse(json);
+    }catch(e){window._bootError='embed:'+e.message;return null;}
+  }
+  // Backward-compat: raw JSON object (older shared files)
+  if(window.__SHARED_PAYLOAD__)return window.__SHARED_PAYLOAD__;
+  return null;
+}
+
+function bootFromSharedPayload(){
+  const p=getSharedPayload();
+  if(!p)return false;
+  // Rehydrate the shared month's transactions (ISO date strings → Date objects)
+  const txns=(p.txns||[]).map(t=>({
+    date:t.date?new Date(t.date):null,
+    month:t.month,amount:t.amount,excl:t.excl,tags:t.tags||[],
+    cat:t.cat||'',payee:t.payee||'',acct:t.acct||'',notes:t.notes||''
+  }));
+  window._allTxns=txns;                       // only the shared month has transactions
+  window._detailMonth=p.detailMonth||null;    // the one month with drill-down detail
+  window._allMonths=p.allMonths||[p.detailMonth];
+  if(p.settings)SETTINGS={...SETTINGS,...p.settings};
+
+  // Load ALL months' summaries directly from the payload (for Trends + History)
+  HISTORY=p.history||{};
+  // Make sure the shared month's full analysis is available
+  CURRENT=analyzeMonth(txns,window._detailMonth);
+
+  // Show the app (skip upload screen)
+  $('upload-screen').style.display='none';
+  $('app').style.display='flex';
+  $('main-tabs').style.display='flex';
+  renderMonthStrip();
+  renderAll();
+  // Recipient can't add their own data
+  const up=document.querySelector('label[for="csv-input"]');
+  if(up)up.style.display='none';
+  return true;
+}
+
+function safeBootShared(){
+  const hasHash=/[#&]data=/.test(window.location.hash||'');
+  if(!hasHash&&!window.__SHARED_PAYLOAD_B64__&&!window.__SHARED_PAYLOAD__)return false;
+  try{
+    const ok=bootFromSharedPayload();
+    if(!ok&&hasHash){
+      // Hash was present but payload didn't parse — show a diagnostic instead of silent upload screen
+      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center">'+
+        '<h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Link data didn\'t load</h2>'+
+        '<p style="color:var(--tx2);font-size:0.8rem">The link opened but its data couldn\'t be read'+
+        (window._bootError?' ('+window._bootError+')':'')+'. The link may have been shortened or altered in transit. '+
+        'Try copying the full link again.</p></div>';
+      return true;
+    }
+    return ok;
+  }catch(e){
+    try{
+      $('upload-screen').innerHTML='<div style="padding:40px 24px;text-align:center">'+
+        '<h2 style="font-family:\'Source Serif 4\',serif;font-weight:400;margin-bottom:8px">Couldn\'t open this snapshot</h2>'+
+        '<p style="color:var(--tx2);font-size:0.85rem">Problem loading shared data: '+e.message+'</p></div>';
+    }catch(_){}
+    return true;
+  }
+}
+
+if(!safeBootShared()){
+  // Normal startup: if history exists, show quick-load on upload screen
+  const histMonths=Object.keys(HISTORY).sort().reverse();
+  if(histMonths.length>0){
+    $('hist-quick').innerHTML=`<div style="font-size:0.82rem;color:var(--tx2);margin-bottom:10px">Or load a saved month:</div>
+      ${histMonths.slice(0,3).map(m=>`<button class="hdr-btn" style="margin:4px" onclick="loadHistoryMonth('${m}');
+        document.getElementById('upload-screen').style.display='none';
+        document.getElementById('app').style.display='flex';
+        document.getElementById('main-tabs').style.display='flex';
+        renderMonthStrip();">${HISTORY[m].label}</button>`).join('')}`;
+  }
+}
+</script>
+
+</body></html>
